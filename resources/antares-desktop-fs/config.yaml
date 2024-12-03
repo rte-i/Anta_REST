@@ -9,19 +9,19 @@ db:
   url: "sqlite:///database.db"
 
 storage:
-  tmp_dir: ./tmp
-  matrixstore: ./matrices
-  archive_dir: ./archives
+  tmp_dir: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/tmp
+  matrixstore: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/matrices
+  archive_dir: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/archives
   workspaces:
     default:
-      path: ./internal_studies/
+      path: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/internal_studies/
     studies:
-      path: ./studies/
+      path: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/studies/
 
 launcher:
   local:
     binaries:
-      VER: ANTARES_SOLVER_PATH
+      880: /home/milos/Documents/RTEi/01-Antares/01-SourceCodeRTEi/Antares_Simulator/_build_cr25/solver/antares-8.8-solver
 
 #  slurm:
 #    local_workspace: /path/to/slurm_workspace  # Path to the local SLURM workspace
@@ -55,4 +55,4 @@ server:
     - watcher
 
 logging:
-  logfile: ./logs/antarest.log
+  logfile: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/logs/antarest.log
