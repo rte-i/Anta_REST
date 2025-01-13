@@ -100,6 +100,7 @@ class GeneralData(IniFileNode):
             "unit-commitment-mode": str,
             "number-of-cores-mode": str,
             "day-ahead-reserve-management": str,
+            "seasonal-hydro-heuristic": str,
         },
         "advanced parameters": {
             "accuracy-on-correlation": str,
