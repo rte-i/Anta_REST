@@ -113,7 +113,7 @@ export interface AdvancedParamsFormFields {
   numberOfCoresMode: string;
   powerFluctuations: string;
   renewableGenerationModelling: string;
-  hydroPartialHeuristics: string;
+  seasonalHydroHeuristic: string;
   seedHydroCosts: number;
   seedInitialReservoirLevels: number;
   seedSpilledEnergyCosts: number;

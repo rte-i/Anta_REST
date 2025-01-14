@@ -220,10 +220,10 @@ function Fields() {
         {studyVersion >= 880 && (
           <SelectFE
             label={t(
-              "study.configuration.advancedParameters.hydroPartialHeuristics",
+              "study.configuration.advancedParameters.seasonalHydroHeuristic",
             )}
             options={PARTIAL_HEURISTICS_OPTIONS}
-            name="hydroPartialHeuristics"
+            name="seasonalHydroHeuristic"
             control={control}
           />
         )}
