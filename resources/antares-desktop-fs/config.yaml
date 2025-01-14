@@ -9,19 +9,19 @@ db:
   url: "sqlite:///database.db"
 
 storage:
-  tmp_dir: ./tmp
-  matrixstore: ./matrices
-  archive_dir: ./archives
+  tmp_dir: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/tmp
+  matrixstore: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/matrices
+  archive_dir: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/archives
   workspaces:
     default:
-      path: ./internal_studies/
+      path: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/internal_studies/
     studies:
-      path: ./studies/
+      path: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/studies/
 
 launcher:
   local:
     binaries:
-      VER: ANTARES_SOLVER_PATH
+      880: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/solver/test-new-input/antares-8.8-solver
 
 #  slurm:
 #    local_workspace: /path/to/slurm_workspace  # Path to the local SLURM workspace
@@ -49,10 +49,12 @@ debug: false
 # Serve the API at /api
 api_prefix: "/api"
 
+# api_prefix: Typically used in the FastAPI app code to define the actual base path of your routes (e.g., /api).
+
 server:
   worker_threadpool_size: 12
   services:
     - watcher
 
 logging:
-  logfile: ./logs/antarest.log
+  logfile: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/logs/antarest.log

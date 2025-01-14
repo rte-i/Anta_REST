@@ -24,6 +24,7 @@ from antarest.study.model import (
     STUDY_VERSION_8_4,
     STUDY_VERSION_8_5,
     STUDY_VERSION_8_6,
+    STUDY_VERSION_8_8,
 )
 from antarest.study.storage.rawstudy.ini_reader import IniReader
 from antarest.study.storage.rawstudy.ini_writer import IniWriter
@@ -167,6 +168,9 @@ class GeneralData(IniFileNode):
         if study_version >= STUDY_VERSION_8_6:
             types["adequacy patch"]["enable-first-step "] = bool
 
+        if study_version >= STUDY_VERSION_8_8:
+            other_preferences["seasonal-hydro-heuristic"] = str
+        
         IniFileNode.__init__(
             self,
             context,

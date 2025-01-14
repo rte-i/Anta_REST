@@ -76,6 +76,11 @@ enum RenewableGenerationModeling {
   Clusters = "clusters",
 }
 
+enum PartialHeuristics {
+  Ignore = "ignore",
+  Activate = "activate",
+}
+
 ////////////////////////////////////////////////////////////////
 // Constants
 ////////////////////////////////////////////////////////////////
@@ -93,6 +98,7 @@ export const SIMULATION_CORES_OPTIONS = Object.values(SimulationCore);
 export const RENEWABLE_GENERATION_OPTIONS = Object.values(
   RenewableGenerationModeling,
 );
+export const PARTIAL_HEURISTICS_OPTIONS = Object.values(PartialHeuristics);
 
 ////////////////////////////////////////////////////////////////
 // Types
@@ -107,6 +113,7 @@ export interface AdvancedParamsFormFields {
   numberOfCoresMode: string;
   powerFluctuations: string;
   renewableGenerationModelling: string;
+  seasonalHydroHeuristic: string;
   seedHydroCosts: number;
   seedInitialReservoirLevels: number;
   seedSpilledEnergyCosts: number;

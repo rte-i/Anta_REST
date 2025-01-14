@@ -329,6 +329,17 @@ class Thermal870Properties(Thermal860Properties):
         title="Variable O&M Cost",
     )
 
+class Thermal880Properties(Thermal870Properties):
+    """
+    Thermal cluster configuration model for study in version 8.8 or above.
+    """
+
+    seasonal_hydro_heuristic: str = Field(
+        default="ignored",
+        description="Seasonal Hydro Heuristic Option",
+        alias="seasonal-hydro-heuristic",
+        title="Seasonal Hydro Heuristic",
+    )
 
 class ThermalConfig(ThermalProperties, IgnoreCaseIdentifier):
     """
@@ -400,10 +411,34 @@ class Thermal870Config(Thermal870Properties, IgnoreCaseIdentifier):
     True
     """
 
+class Thermal880Config(Thermal880Properties, IgnoreCaseIdentifier):
+    """
+    Thermal properties for study in version 8.8 or above.
+
+    Usage:
+
+    >>> from antarest.study.storage.rawstudy.model.filesystem.config.thermal import Thermal880Config
+
+    >>> cl = Thermal880Config(name="cluster 01!", group="Nuclear", co2=123, nh3=456, seasonal_hydro_heuristic="activated")
+    >>> cl.id
+    'cluster 01'
+    >>> cl.group == ThermalClusterGroup.NUCLEAR
+    True
+    >>> cl.co2
+    123.0
+    >>> cl.nh3
+    456.0
+    >>> cl.op1
+    0.0
+    >>> cl.efficiency
+    97.0
+    >>> cl.seasonal_hydro_heuristic
+    'ignored'
+    """
 
 # NOTE: In the following Union, it is important to place the most specific type first,
 # because the type matching generally occurs sequentially from left to right within the union.
-ThermalConfigType = t.Union[Thermal870Config, Thermal860Config, ThermalConfig]
+ThermalConfigType = t.Union[Thermal880Config, Thermal870Config, Thermal860Config, ThermalConfig]
 
 
 def get_thermal_config_cls(study_version: StudyVersion) -> t.Type[ThermalConfigType]:
@@ -416,7 +451,9 @@ def get_thermal_config_cls(study_version: StudyVersion) -> t.Type[ThermalConfigT
     Returns:
         The thermal configuration class.
     """
-    if study_version >= 870:
+    if study_version >= 880:
+        return Thermal880Config
+    elif study_version >= 870:
         return Thermal870Config
     elif study_version == 860:
         return Thermal860Config

@@ -49,6 +49,7 @@ class TestAdvancedParametersForm:
             "numberOfCoresMode": "maximum",
             "powerFluctuations": "free modulations",
             "renewableGenerationModelling": "clusters",
+            "seasonalHydroHeuristic": "ignore",  # Add the new field
             "seedHydroCosts": 9005489,
             "seedInitialReservoirLevels": 10005489,
             "seedSpilledEnergyCosts": 7005489,
