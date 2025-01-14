@@ -23,7 +23,7 @@ launcher:
 
   local:
     binaries:
-      880: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/01-Anta_REST-RTE-I/solver/antares-8.8-solver
+      880: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/solver/test-new-input/antares-8.8-solver
     enable_nb_cores_detection: true
 
 # See https://fastapi.tiangolo.com/advanced/behind-a-proxy/
