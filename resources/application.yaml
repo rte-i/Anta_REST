@@ -49,8 +49,8 @@ server:
     - matrix_gc
 
 logging:
-  level: INFO
+  level: DEBUG
   logfile: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/logs/antarest.log
 
 # True to get sqlalchemy logs
-debug: False
+debug: True
