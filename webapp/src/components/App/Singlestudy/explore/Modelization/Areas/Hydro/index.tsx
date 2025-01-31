@@ -43,6 +43,7 @@ function Hydro() {
       { label: "Hydro Storage", path: `${basePath}/hydrostorage` },
       { label: "Run of river", path: `${basePath}/ror` },
       studyVersion >= 860 && { label: "Min Gen", path: `${basePath}/mingen` },
+      studyVersion >= 880 && { label: "Max Res Lev", path: `${basePath}/maxDailyReservoirLevels` },
     ].filter(Boolean);
   }, [areaId, study?.id, studyVersion]);
 

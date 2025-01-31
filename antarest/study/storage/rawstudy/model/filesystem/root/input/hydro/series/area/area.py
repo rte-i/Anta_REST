@@ -12,7 +12,7 @@
 
 from typing import Any, Dict
 
-from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_6
+from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_6, STUDY_VERSION_8_8
 from antarest.study.storage.rawstudy.model.filesystem.folder_node import FolderNode
 from antarest.study.storage.rawstudy.model.filesystem.inode import TREE, INode
 from antarest.study.storage.rawstudy.model.filesystem.matrix.constants import (
@@ -50,5 +50,12 @@ class InputHydroSeriesArea(FolderNode):
                 self.config.next_file("mingen.txt"),
                 freq=MatrixFrequency.HOURLY,
                 default_empty=default_scenario_hourly,
+            ),
+        if study_version >= STUDY_VERSION_8_8:
+            hydro_series_matrices["maxDailyReservoirLevels"] = InputSeriesMatrix(
+                self.context,
+                self.config.next_file("maxDailyReservoirLevels.txt"),
+                freq=MatrixFrequency.DAILY,
+                default_empty=default_scenario_daily, ## if this is not ok, we can create new default value in filesystem/matrix/constants.py
             )
         return hydro_series_matrices
