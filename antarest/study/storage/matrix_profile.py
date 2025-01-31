@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from antarest.study.model import STUDY_VERSION_8_2, STUDY_VERSION_8_6, STUDY_VERSION_8_7
+from antarest.study.model import STUDY_VERSION_8_2, STUDY_VERSION_8_6, STUDY_VERSION_8_7, STUDY_VERSION_8_8
 
 
 class _MatrixProfile(t.NamedTuple):
@@ -176,6 +176,10 @@ _SPECIFIC_MATRICES_8_7 = copy.deepcopy(_SPECIFIC_MATRICES_8_2)
 # Scenarized RHS for binding constraints
 _SPECIFIC_MATRICES_8_7["input/bindingconstraints/*"] = _MatrixProfile(cols=[], rows=[])
 
+_SPECIFIC_MATRICES_8_8 = copy.deepcopy(_SPECIFIC_MATRICES_8_7)
+"""Specific matrices for study version 8.8."""
+
+_SPECIFIC_MATRICES_8_8["input/hydro/series/*/maxDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
 
 def adjust_matrix_columns_index(
     df: pd.DataFrame, matrix_path: str, with_index: bool, with_header: bool, study_version: int
@@ -199,8 +203,16 @@ def adjust_matrix_columns_index(
         matrix_profiles = _SPECIFIC_MATRICES_8_2
     elif study_version < STUDY_VERSION_8_7:
         matrix_profiles = _SPECIFIC_MATRICES_8_6
-    else:
+    elif study_version < STUDY_VERSION_8_8:
         matrix_profiles = _SPECIFIC_MATRICES_8_7
+    else:
+        matrix_profiles = _SPECIFIC_MATRICES_8_8
+
+
+    print(f"Study version: {study_version}")
+    print(f"Matrix profiles being used: {matrix_profiles.keys()}")
+    print(f"Processing matrix path: {matrix_path}")
+
 
     # Apply the matrix profile to the dataframe to adjust the column names and index
     for pattern, matrix_profile in matrix_profiles.items():
