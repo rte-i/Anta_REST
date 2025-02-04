@@ -44,7 +44,7 @@ launcher:
 #      - "850"
 
 
-debug: false
+debug: true
 
 # Serve the API at /api
 api_prefix: "/api"
@@ -57,4 +57,5 @@ server:
     - watcher
 
 logging:
+  level: DEBUG
   logfile: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/logs/antarest.log
