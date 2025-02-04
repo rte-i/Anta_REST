@@ -15,7 +15,7 @@ import typing as t
 from pydantic import Field
 
 from antarest.core.model import JSON
-from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_1, STUDY_VERSION_8_3, STUDY_VERSION_8_6
+from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_1, STUDY_VERSION_8_3, STUDY_VERSION_8_6, STUDY_VERSION_8_8
 from antarest.study.storage.rawstudy.model.filesystem.config.model import (
     Area,
     EnrModelling,
@@ -276,6 +276,9 @@ class CreateArea(ICommand):
             new_area_data["input"]["st-storage"] = {"clusters": {area_id: {"list": {}}}}
             new_area_data["input"]["hydro"]["series"][area_id]["mingen"] = null_matrix
 
+        if version >= STUDY_VERSION_8_8:
+            new_area_data["input"]["hydro"]["series"][area_id]["maxDailyReservoirLevels"] = null_matrix
+        
         new_area_data["input"]["hydro"]["hydro"] = hydro_config
 
         # NOTE regarding the following configurations:
