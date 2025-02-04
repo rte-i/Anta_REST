@@ -454,7 +454,8 @@ def get_thermal_config_cls(study_version: StudyVersion) -> t.Type[ThermalConfigT
         return Thermal870Config
     elif study_version == 860:
         return Thermal860Config
-
+    else:
+        return ThermalConfig
 
 def create_thermal_config(study_version: StudyVersion, **kwargs: t.Any) -> ThermalConfigType:
     """
