@@ -33,6 +33,7 @@ export const HydroMatrix = {
   HydroStorage: "HydroStorage",
   RunOfRiver: "RunOfRiver",
   MinGen: "MinGen",
+  MaxDailyReservoirLevels: "MaxDailyReservoirLevels",
   InflowPattern: "InflowPattern",
   OverallMonthlyHydro: "OverallMonthlyHydro",
   Allocation: "Allocation",
@@ -123,6 +124,10 @@ export const HYDRO_ROUTES: HydroRoute[] = [
     path: "mingen",
     type: HydroMatrix.MinGen,
   },
+  {
+    path: "maxDailyReservoirLevels",
+    type: HydroMatrix.MaxDailyReservoirLevels,
+  },
 ];
 
 export const MATRICES: Matrices = {
@@ -166,6 +171,10 @@ export const MATRICES: Matrices = {
   [HydroMatrix.MinGen]: {
     title: "Min Gen",
     url: "input/hydro/series/{areaId}/mingen",
+  },
+  [HydroMatrix.MaxDailyReservoirLevels]: {
+    title: "Max Res Level",
+    url: "input/hydro/series/{areaId}/maxDailyReservoirLevels",
   },
   [HydroMatrix.InflowPattern]: {
     title: "Inflow Pattern",
