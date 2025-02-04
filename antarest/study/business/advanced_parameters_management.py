@@ -73,6 +73,9 @@ class RenewableGenerationModeling(EnumIgnoreCase):
     AGGREGATED = "aggregated"
     CLUSTERS = "clusters"
 
+class PartialHeuristics(EnumIgnoreCase):
+    IGNORE = "ignore"
+    ACTIVATE = "activate"
 
 @all_optional_model
 class AdvancedParamsFormFields(FormFieldsBaseModel):
@@ -88,6 +91,7 @@ class AdvancedParamsFormFields(FormFieldsBaseModel):
     number_of_cores_mode: SimulationCore
     day_ahead_reserve_management: ReserveManagement
     renewable_generation_modelling: RenewableGenerationModeling
+    seasonal_hydro_heuristic: PartialHeuristics
     # Seeds
     seed_tsgen_wind: StrictInt
     seed_tsgen_load: StrictInt
@@ -166,6 +170,10 @@ FIELDS_INFO: Dict[str, FieldInfo] = {
     "renewable_generation_modelling": {
         "path": f"{OTHER_PREFERENCES_PATH}/renewable-generation-modelling",
         "default_value": RenewableGenerationModeling.CLUSTERS.value,
+    },
+    "seasonal_hydro_heuristic": {
+        "path": f"{OTHER_PREFERENCES_PATH}/seasonal-hydro-heuristic",
+        "default_value": PartialHeuristics.IGNORE.value,
     },
     # Seeds
     "seed_tsgen_wind": {
