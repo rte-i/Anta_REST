@@ -30,6 +30,7 @@ import {
   UNIT_COMMITMENT_MODE_OPTIONS,
   SIMULATION_CORES_OPTIONS,
   RENEWABLE_GENERATION_OPTIONS,
+  PARTIAL_HEURISTICS_OPTIONS,
   UnitCommitmentMode,
 } from "./utils";
 import { useOutletContext } from "react-router";
@@ -213,6 +214,16 @@ function Fields() {
             )}
             options={RENEWABLE_GENERATION_OPTIONS}
             name="renewableGenerationModelling"
+            control={control}
+          />
+        )}
+        {studyVersion >= 880 && (
+          <SelectFE
+            label={t(
+              "study.configuration.advancedParameters.seasonalHydroHeuristic",
+            )}
+            options={PARTIAL_HEURISTICS_OPTIONS}
+            name="seasonalHydroHeuristic"
             control={control}
           />
         )}
