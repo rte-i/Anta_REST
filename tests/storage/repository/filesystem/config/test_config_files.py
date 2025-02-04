@@ -41,6 +41,7 @@ from antarest.study.storage.rawstudy.model.filesystem.config.st_storage import S
 from antarest.study.storage.rawstudy.model.filesystem.config.thermal import (
     Thermal860Config,
     Thermal870Config,
+    Thermal880Config,
     ThermalConfig,
     ThermalCostGeneration,
 )
@@ -385,7 +386,7 @@ nh3 = 456
 """
 
 
-@pytest.mark.parametrize("version", [850, 860, 870])
+@pytest.mark.parametrize("version", [850, 860, 870, 880])
 def test_parse_thermal_860(study_path: Path, version, caplog) -> None:
     study_path.joinpath("study.antares").write_text(f"[antares] \n version = {version}")
     ini_path = study_path.joinpath("input/thermal/clusters/fr/list.ini")
@@ -413,6 +414,20 @@ def test_parse_thermal_860(study_path: Path, version, caplog) -> None:
             ),
         ]
         assert not caplog.text
+    elif version == 880:
+        expected = [
+            Thermal880Config(id="t1", name="t1", seasonal_hydro_heuristic="ignored"),
+            Thermal880Config(
+                id="t2",
+                name="t2",
+                co2=156,
+                nh3=456,
+                cost_generation=ThermalCostGeneration.SET_MANUALLY,
+                efficiency=100.0,
+                variable_o_m_cost=0,
+                seasonal_hydro_heuristic="ignored",
+            ),
+        ]
     else:
         expected = [ThermalConfig(id="t1", name="t1")]
         assert "Extra inputs are not permitted" in caplog.text
