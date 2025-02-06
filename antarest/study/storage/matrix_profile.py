@@ -181,6 +181,7 @@ _SPECIFIC_MATRICES_8_8 = copy.deepcopy(_SPECIFIC_MATRICES_8_7)
 
 _SPECIFIC_MATRICES_8_8["input/hydro/series/*/maxDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
 
+
 def adjust_matrix_columns_index(
     df: pd.DataFrame, matrix_path: str, with_index: bool, with_header: bool, study_version: int
 ) -> None:
