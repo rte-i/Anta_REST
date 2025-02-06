@@ -170,7 +170,7 @@ class GeneralData(IniFileNode):
 
         if study_version >= STUDY_VERSION_8_8:
             other_preferences["seasonal-hydro-heuristic"] = str
-        
+
         IniFileNode.__init__(
             self,
             context,

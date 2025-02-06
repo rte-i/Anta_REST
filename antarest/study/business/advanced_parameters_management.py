@@ -73,9 +73,11 @@ class RenewableGenerationModeling(EnumIgnoreCase):
     AGGREGATED = "aggregated"
     CLUSTERS = "clusters"
 
+
 class PartialHeuristics(EnumIgnoreCase):
     IGNORE = "ignore"
     ACTIVATE = "activate"
+
 
 @all_optional_model
 class AdvancedParamsFormFields(FormFieldsBaseModel):

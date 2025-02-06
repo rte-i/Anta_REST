@@ -329,6 +329,7 @@ class Thermal870Properties(Thermal860Properties):
         title="Variable O&M Cost",
     )
 
+
 class Thermal880Properties(Thermal870Properties):
     """
     Thermal cluster configuration model for study in version 8.8 or above.
@@ -340,6 +341,7 @@ class Thermal880Properties(Thermal870Properties):
         alias="seasonal-hydro-heuristic",
         title="Seasonal Hydro Heuristic",
     )
+
 
 class ThermalConfig(ThermalProperties, IgnoreCaseIdentifier):
     """
@@ -411,6 +413,7 @@ class Thermal870Config(Thermal870Properties, IgnoreCaseIdentifier):
     True
     """
 
+
 class Thermal880Config(Thermal880Properties, IgnoreCaseIdentifier):
     """
     Thermal properties for study in version 8.8 or above.
@@ -432,6 +435,7 @@ class Thermal880Config(Thermal880Properties, IgnoreCaseIdentifier):
     >>> cl.seasonal_hydro_heuristic
     'ignored'
     """
+
 
 # NOTE: In the following Union, it is important to place the most specific type first,
 # because the type matching generally occurs sequentially from left to right within the union.
@@ -456,6 +460,7 @@ def get_thermal_config_cls(study_version: StudyVersion) -> t.Type[ThermalConfigT
         return Thermal860Config
     else:
         return ThermalConfig
+
 
 def create_thermal_config(study_version: StudyVersion, **kwargs: t.Any) -> ThermalConfigType:
     """
