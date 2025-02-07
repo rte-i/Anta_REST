@@ -12,17 +12,35 @@
  * This file is part of the Antares project.
  */
 
+import { useState, useEffect } from "react";
 import { useMemo } from "react";
 import { useOutletContext } from "react-router";
 import { StudyMetadata } from "../../../../../../../common/types";
 import TabWrapper from "../../../TabWrapper";
 import useAppSelector from "../../../../../../../redux/hooks/useAppSelector";
 import { getCurrentAreaId } from "../../../../../../../redux/selectors";
+import {
+  AdvancedParamsFormFields,
+  getAdvancedParamsFormFields,
+} from "../../../Configuration/AdvancedParameters/utils";
 
 function Hydro() {
   const { study } = useOutletContext<{ study: StudyMetadata }>();
   const areaId = useAppSelector(getCurrentAreaId);
   const studyVersion = parseInt(study.version, 10);
+
+  // State to store whether to show reservoir levels ts tab(s) or not
+  const [showResLevelsTs, setShowResLevelsTs] = useState<boolean>(true);
+  // Fetch advanced parameters and set showResLevelsTs accordingly
+  useEffect(() => {
+    getAdvancedParamsFormFields(study.id).then(
+      (advancedParams: AdvancedParamsFormFields) => {
+        setShowResLevelsTs(
+          advancedParams.renewableGenerationModelling !== "aggregated",
+        );
+      },
+    );
+  }, [study.id]);
 
   const tabList = useMemo(() => {
     const basePath = `/studies/${study?.id}/explore/modelization/area/${encodeURI(
@@ -43,12 +61,13 @@ function Hydro() {
       { label: "Hydro Storage", path: `${basePath}/hydrostorage` },
       { label: "Run of river", path: `${basePath}/ror` },
       studyVersion >= 860 && { label: "Min Gen", path: `${basePath}/mingen` },
-      studyVersion >= 880 && {
-        label: "Max Res Level",
-        path: `${basePath}/maxDailyReservoirLevels`,
-      },
+      studyVersion >= 880 &&
+        showResLevelsTs && {
+          label: "Max Res Level",
+          path: `${basePath}/maxDailyReservoirLevels`,
+        },
     ].filter(Boolean);
-  }, [areaId, study?.id, studyVersion]);
+  }, [areaId, study?.id, studyVersion, showResLevelsTs]);
 
   ////////////////////////////////////////////////////////////////
   // JSX
