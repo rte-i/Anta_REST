@@ -6,7 +6,7 @@ on:
 
 jobs:
   python-lint:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout github repo (+ download lfs dependencies)
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
     strategy:
       max-parallel: 9
       matrix:
-        os: [windows-latest, ubuntu-20.04]
+        os: [windows-latest, ubuntu-22.04]
 
     steps:
       - name: Checkout github repo (+ download lfs dependencies)
@@ -62,7 +62,7 @@ jobs:
           path: coverage.xml
 
   npm-setup:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout github repo
         uses: actions/checkout@v4
@@ -85,7 +85,7 @@ jobs:
 
   npm-lint:
     needs: npm-setup
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout github repo
         uses: actions/checkout@v4
@@ -105,7 +105,7 @@ jobs:
 
   npm-test:
     needs: npm-setup
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout github repo
         uses: actions/checkout@v4
@@ -125,7 +125,7 @@ jobs:
 
   npm-build:
     needs: npm-setup
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout github repo
         uses: actions/checkout@v4
@@ -147,7 +147,7 @@ jobs:
           DISABLE_ESLINT_PLUGIN: true
 
   sonarcloud:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     needs: [python-test, npm-test]
     steps:
       - uses: actions/checkout@v4
