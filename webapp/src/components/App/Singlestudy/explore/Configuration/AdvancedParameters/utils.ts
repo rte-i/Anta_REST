@@ -82,8 +82,8 @@ enum HydroMaxPower {
 }
 
 enum HydroReservoirLevels {
-  Uniform = "uniform",
-  Scenarios = "scenarios",
+  Single = "single",
+  Scenarized = "scenarized",
 }
 
 ////////////////////////////////////////////////////////////////
@@ -130,7 +130,7 @@ export interface AdvancedParamsFormFields {
   sheddingPolicy: string;
   unitCommitmentMode: string;
   hydroPmax: string;
-  hydroResLevels: string;
+  hydroRuleCurves: string;
 }
 
 type AdvancedParamsFormFields_RAW = Omit<AdvancedParamsFormFields, "accuracyOnCorrelation"> & {

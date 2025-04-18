@@ -439,7 +439,7 @@
   "study.configuration.advancedParameters.renewableGenerationModeling": "Renewable generation modeling",
   "study.configuration.advancedParameters.compatibility": "Compatibility",
   "study.configuration.advancedParameters.hydroPmax": "Hydro Pmax",
-  "study.configuration.advancedParameters.hydroResLevels": "Hydro reservoir levels",
+  "study.configuration.advancedParameters.hydroRuleCurves": "Hydro reservoir levels",
   "study.configuration.economicOpt": "Options économiques",
   "study.configuration.geographicTrimmingAreas": "Filtre géographique (zones)",
   "study.configuration.geographicTrimmingLinks": "Filtre géographique (liens)",

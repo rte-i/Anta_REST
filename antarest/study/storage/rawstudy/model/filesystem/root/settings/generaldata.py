@@ -121,7 +121,7 @@ class GeneralData(IniFileNode):
         },
         "compatibility": {
             "hydro-pmax": str,
-            "hydro-res-levels": str,
+            "hydro-rule-curves": str,
         },
     }
 
@@ -174,7 +174,7 @@ class GeneralData(IniFileNode):
 
         if study_version >= STUDY_VERSION_9_2:
             types["compatibility"]["hydro-pmax"] = str
-            types["compatibility"]["hydro-res-levels"] = str
+            types["compatibility"]["hydro-rule-curves"] = str
 
         IniFileNode.__init__(
             self,

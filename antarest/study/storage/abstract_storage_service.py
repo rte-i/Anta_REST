@@ -228,7 +228,6 @@ class AbstractStorageService(IStudyStorageService[T], ABC):
                         otherPreferences=file_metadata["other preferences"],
                         advancedParameters=file_metadata["advanced parameters"],
                         seedsMersenneTwister=file_metadata["seeds - Mersenne Twister"],
-                        compatibility=file_metadata["compatibility"],
                         playlist=[year for year in (get_playlist(file_metadata) or {}).keys()],
                     )
 

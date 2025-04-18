@@ -189,9 +189,9 @@ function Fields() {
         )}
         {studyVersion >= 920 && (
           <SelectFE
-            label={t("study.configuration.advancedParameters.hydroResLevels")}
+            label={t("study.configuration.advancedParameters.hydroRuleCurves")}
             options={HYDRO_RESERVOIR_LEVELS_OPTION}
-            name="hydroResLevels"
+            name="hydroRuleCurves"
             control={control}
           />
         )}

@@ -486,7 +486,6 @@ class StudySimSettingsDTO(AntaresBaseModel):
     otherPreferences: t.Dict[str, t.Any]
     advancedParameters: t.Dict[str, t.Any]
     seedsMersenneTwister: t.Dict[str, t.Any]
-    compatibility: t.Dict[str, t.Any]
     playlist: t.Optional[t.List[int]] = None
 
 

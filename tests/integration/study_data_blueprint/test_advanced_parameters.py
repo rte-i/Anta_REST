@@ -46,7 +46,7 @@ class TestAdvancedParametersForm:
             "hydroHeuristicPolicy": "accommodate rule curves",
             "hydroPmax": "daily",
             "hydroPricingMode": "fast",
-            "hydroResLevels": "uniform",
+            "hydroRuleCurves": "single",
             "initialReservoirLevels": "cold start",
             "numberOfCoresMode": "maximum",
             "powerFluctuations": "free modulations",

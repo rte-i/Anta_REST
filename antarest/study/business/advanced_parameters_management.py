@@ -80,8 +80,8 @@ class HydroMaxPower(EnumIgnoreCase):
 
 
 class HydroReservoirLevels(EnumIgnoreCase):
-    UNIFORM = "uniform"
-    SCENARIOS = "scenarios"
+    SINGLE = "single"
+    SCENARIZED = "scenarized"
 
 
 @all_optional_model
@@ -112,7 +112,7 @@ class AdvancedParamsFormFields(FormFieldsBaseModel):
     seed_initial_reservoir_levels: StrictInt
     # Compatibility
     hydro_pmax: HydroMaxPower
-    hydro_res_levels: HydroReservoirLevels
+    hydro_rule_curves: HydroReservoirLevels
 
     @field_validator("accuracy_on_correlation")
     def check_accuracy_on_correlation(cls, v: str) -> str:
@@ -229,9 +229,9 @@ FIELDS_INFO: Dict[str, FieldInfo] = {
         "path": f"{COMPATIBILITY_PATH}/hydro-pmax",
         "default_value": HydroMaxPower.DAILY.value,
     },
-    "hydro_res_levels": {
-        "path": f"{COMPATIBILITY_PATH}/hydro-res-levels",
-        "default_value": HydroReservoirLevels.UNIFORM.value,
+    "hydro_rule_curves": {
+        "path": f"{COMPATIBILITY_PATH}/hydro-rule-curves",
+        "default_value": HydroReservoirLevels.SINGLE.value,
     },
 }
 
@@ -249,6 +249,7 @@ class AdvancedParamsManager:
         advanced_params = general_data.get("advanced parameters", {})
         other_preferences = general_data.get("other preferences", {})
         seeds = general_data.get("seeds - Mersenne Twister", {})
+        compatibility_data = general_data.get("compatibility", {})
 
         def get_value(field_info: FieldInfo) -> Any:
             path = field_info["path"]
@@ -257,8 +258,10 @@ class AdvancedParamsManager:
                 parent = advanced_params
             elif OTHER_PREFERENCES_PATH in path:
                 parent = other_preferences
-            else:
+            elif SEEDS_PATH in path:
                 parent = seeds
+            else:
+                parent = compatibility_data
             return parent.get(target_name, field_info["default_value"])
 
         return AdvancedParamsFormFields.construct(**{name: get_value(info) for name, info in FIELDS_INFO.items()})
