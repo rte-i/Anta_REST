@@ -74,6 +74,16 @@ class RenewableGenerationModeling(EnumIgnoreCase):
     CLUSTERS = "clusters"
 
 
+class HydroMaxPower(EnumIgnoreCase):
+    DAILY = "daily"
+    HOURLY = "hourly"
+
+
+class HydroReservoirLevels(EnumIgnoreCase):
+    UNIFORM = "uniform"
+    SCENARIOS = "scenarios"
+
+
 @all_optional_model
 class AdvancedParamsFormFields(FormFieldsBaseModel):
     # Advanced parameters
@@ -100,6 +110,9 @@ class AdvancedParamsFormFields(FormFieldsBaseModel):
     seed_thermal_costs: StrictInt
     seed_hydro_costs: StrictInt
     seed_initial_reservoir_levels: StrictInt
+    # Compatibility
+    hydro_pmax: HydroMaxPower
+    hydro_res_levels: HydroReservoirLevels
 
     @field_validator("accuracy_on_correlation")
     def check_accuracy_on_correlation(cls, v: str) -> str:
@@ -122,7 +135,7 @@ class AdvancedParamsFormFields(FormFieldsBaseModel):
 ADVANCED_PARAMS_PATH = f"{GENERAL_DATA_PATH}/advanced parameters"
 OTHER_PREFERENCES_PATH = f"{GENERAL_DATA_PATH}/other preferences"
 SEEDS_PATH = f"{GENERAL_DATA_PATH}/seeds - Mersenne Twister"
-
+COMPATIBILITY_PATH = f"{GENERAL_DATA_PATH}/compatibility"
 
 FIELDS_INFO: Dict[str, FieldInfo] = {
     # Advanced parameters
@@ -211,6 +224,14 @@ FIELDS_INFO: Dict[str, FieldInfo] = {
     "seed_initial_reservoir_levels": {
         "path": f"{SEEDS_PATH}/seed-initial-reservoir-levels",
         "default_value": 10005489,
+    },
+    "hydro_pmax": {
+        "path": f"{COMPATIBILITY_PATH}/hydro-pmax",
+        "default_value": HydroMaxPower.DAILY.value,
+    },
+    "hydro_res_levels": {
+        "path": f"{COMPATIBILITY_PATH}/hydro-res-levels",
+        "default_value": HydroReservoirLevels.UNIFORM.value,
     },
 }
 
