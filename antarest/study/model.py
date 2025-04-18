@@ -47,7 +47,7 @@ if t.TYPE_CHECKING:
 
 DEFAULT_WORKSPACE_NAME = "default"
 
-NEW_DEFAULT_STUDY_VERSION: StudyVersion = StudyVersion.parse("8.8")
+NEW_DEFAULT_STUDY_VERSION: StudyVersion = StudyVersion.parse("9.2")
 STUDY_VERSION_6_0 = StudyVersion.parse("6.0")
 STUDY_VERSION_6_1 = StudyVersion.parse("6.1")
 STUDY_VERSION_6_4 = StudyVersion.parse("6.4")
@@ -63,9 +63,9 @@ STUDY_VERSION_8_4 = StudyVersion.parse("8.4")
 STUDY_VERSION_8_5 = StudyVersion.parse("8.5")
 STUDY_VERSION_8_6 = StudyVersion.parse("8.6")
 STUDY_VERSION_8_7 = StudyVersion.parse("8.7")
-STUDY_VERSION_8_8 = NEW_DEFAULT_STUDY_VERSION
+STUDY_VERSION_8_8 = StudyVersion.parse("8.8")
 STUDY_VERSION_9_1 = StudyVersion.parse("9.1")
-STUDY_VERSION_9_2 = StudyVersion.parse("9.2")
+STUDY_VERSION_9_2 = NEW_DEFAULT_STUDY_VERSION
 
 StudyVersionStr = t.Annotated[StudyVersion, BeforeValidator(StudyVersion.parse), PlainSerializer(str)]
 StudyVersionInt = t.Annotated[StudyVersion, BeforeValidator(StudyVersion.parse), PlainSerializer(int)]
@@ -87,6 +87,7 @@ STUDY_REFERENCE_TEMPLATES: t.Mapping[StudyVersion, str] = {
     STUDY_VERSION_8_6: "empty_study_860.zip",
     STUDY_VERSION_8_7: "empty_study_870.zip",
     STUDY_VERSION_8_8: "empty_study_880.zip",
+    STUDY_VERSION_9_2: "empty_study_920.zip",
 }
 
 
