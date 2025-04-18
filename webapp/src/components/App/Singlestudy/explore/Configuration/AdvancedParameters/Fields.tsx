@@ -176,6 +176,9 @@ function Fields() {
             control={control}
           />
         )}
+      </Fieldset>
+
+      <Fieldset legend={t("study.configuration.advancedParameters.compatibility")}>
         {studyVersion >= 920 && (
           <SelectFE
             label={t("study.configuration.advancedParameters.hydroPmax")}
