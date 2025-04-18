@@ -26,6 +26,7 @@ from antarest.study.model import (
     STUDY_VERSION_8_4,
     STUDY_VERSION_8_5,
     STUDY_VERSION_8_6,
+    STUDY_VERSION_9_2,
 )
 from antarest.study.storage.rawstudy.model.filesystem.config.model import FileStudyTreeConfig
 from antarest.study.storage.rawstudy.model.filesystem.context import ContextServer
@@ -118,6 +119,10 @@ class GeneralData(IniFileNode):
             "seed-hydro-costs": int,
             "seed-initial-reservoir-levels": int,
         },
+        "compatibility": {
+            "hydro-pmax": str,
+            "hydro-res-levels": str,
+        },
     }
 
     def __init__(self, context: ContextServer, config: FileStudyTreeConfig):
@@ -166,6 +171,10 @@ class GeneralData(IniFileNode):
 
         if study_version >= STUDY_VERSION_8_6:
             types["adequacy patch"]["enable-first-step "] = bool
+
+        if study_version >= STUDY_VERSION_9_2:
+            types["compatibility"]["hydro-pmax"] = str
+            types["compatibility"]["hydro-res-levels"] = str
 
         IniFileNode.__init__(
             self,
