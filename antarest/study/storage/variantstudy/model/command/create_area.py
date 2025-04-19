@@ -16,7 +16,13 @@ from pydantic import Field
 from typing_extensions import override
 
 from antarest.core.model import JSON
-from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_1, STUDY_VERSION_8_3, STUDY_VERSION_8_6
+from antarest.study.model import (
+    STUDY_VERSION_6_5,
+    STUDY_VERSION_8_1,
+    STUDY_VERSION_8_3,
+    STUDY_VERSION_8_6,
+    STUDY_VERSION_9_2,
+)
 from antarest.study.storage.rawstudy.model.filesystem.config.identifier import transform_name_to_id
 from antarest.study.storage.rawstudy.model.filesystem.config.model import Area, EnrModelling, FileStudyTreeConfig
 from antarest.study.storage.rawstudy.model.filesystem.factory import FileStudy
@@ -273,6 +279,13 @@ class CreateArea(ICommand):
         if version >= STUDY_VERSION_8_6:
             new_area_data["input"]["st-storage"] = {"clusters": {area_id: {"list": {}}}}
             new_area_data["input"]["hydro"]["series"][area_id]["mingen"] = null_matrix
+
+        if version >= STUDY_VERSION_9_2:
+            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyGenPower"] = null_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyPumpPower"] = null_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxDailyReservoirLevels"] = null_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["minDailyReservoirLevels"] = null_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["avgDailyReservoirLevels"] = null_matrix
 
         new_area_data["input"]["hydro"]["hydro"] = hydro_config
 
