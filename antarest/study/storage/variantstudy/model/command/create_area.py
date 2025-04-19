@@ -126,6 +126,11 @@ class CreateArea(ICommand):
         hydro_config.setdefault("inter-monthly-breakdown", {})[area_id] = 1
 
         null_matrix = self.command_context.generator_matrix_constants.get_null_matrix()
+        null_scenario_matrix = self.command_context.generator_matrix_constants.get_null_scenario_matrix()
+        max_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_max_res_level()
+        avg_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_avg_res_level()
+        min_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_min_res_level()
+        hydro_max_energy_matrix = self.command_context.generator_matrix_constants.get_default_daily_hydro_energy()
 
         new_area_data: JSON = {
             "input": {
@@ -281,11 +286,11 @@ class CreateArea(ICommand):
             new_area_data["input"]["hydro"]["series"][area_id]["mingen"] = null_matrix
 
         if version >= STUDY_VERSION_9_2:
-            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyGenPower"] = null_matrix
-            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyPumpPower"] = null_matrix
-            new_area_data["input"]["hydro"]["series"][area_id]["maxDailyReservoirLevels"] = null_matrix
-            new_area_data["input"]["hydro"]["series"][area_id]["minDailyReservoirLevels"] = null_matrix
-            new_area_data["input"]["hydro"]["series"][area_id]["avgDailyReservoirLevels"] = null_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyGenPower"] = null_scenario_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyPumpPower"] = null_scenario_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxDailyReservoirLevels"] = max_res_level_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["minDailyReservoirLevels"] = min_res_level_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["avgDailyReservoirLevels"] = avg_res_level_matrix
 
         new_area_data["input"]["hydro"]["hydro"] = hydro_config
 
