@@ -30,6 +30,11 @@ export const HydroMatrix = {
   HydroStorage: "HydroStorage",
   RunOfRiver: "RunOfRiver",
   MinGen: "MinGen",
+  MaxHourlyGenPower: "MaxHourlyGenPower",
+  MaxHourlyPumpPower: "MaxHourlyPumpPower",
+  MaxDailyReservoirLevels: "MaxDailyReservoirLevels",
+  MinDailyReservoirLevels: "MinDailyReservoirLevels",
+  AvgDailyReservoirLevels: "AvgDailyReservoirLevels",
   InflowPattern: "InflowPattern",
   OverallMonthlyHydro: "OverallMonthlyHydro",
   Allocation: "Allocation",
@@ -120,6 +125,26 @@ export const HYDRO_ROUTES: HydroRoute[] = [
     path: "mingen",
     type: HydroMatrix.MinGen,
   },
+  {
+    path: "maxHourlyGenPower",
+    type: HydroMatrix.MaxHourlyGenPower,
+  },
+  {
+    path: "maxHourlyPumpPower",
+    type: HydroMatrix.MaxHourlyPumpPower,
+  },
+  {
+    path: "minDailyReservoirLevels",
+    type: HydroMatrix.MinDailyReservoirLevels,
+  },
+  {
+    path: "avgDailyReservoirLevels",
+    type: HydroMatrix.AvgDailyReservoirLevels,
+  },
+  {
+    path: "maxDailyReservoirLevels",
+    type: HydroMatrix.MaxDailyReservoirLevels,
+  },
 ];
 
 export const MATRICES: Matrices = {
@@ -202,6 +227,26 @@ export const MATRICES: Matrices = {
     fetchFn: getCorrelationMatrix,
     dateTimeColumn: false,
     readOnly: true,
+  },
+  [HydroMatrix.MaxHourlyGenPower]: {
+    title: "Max Gen",
+    url: "input/hydro/series/{areaId}/maxHourlyGenPower",
+  },
+  [HydroMatrix.MaxHourlyPumpPower]: {
+    title: "Max Pump",
+    url: "input/hydro/series/{areaId}/maxHourlyPumpPower",
+  },
+  [HydroMatrix.MinDailyReservoirLevels]: {
+    title: "Min Res Level",
+    url: "input/hydro/series/{areaId}/minDailyReservoirLevels",
+  },
+  [HydroMatrix.AvgDailyReservoirLevels]: {
+    title: "Avg Res Level",
+    url: "input/hydro/series/{areaId}/avgDailyReservoirLevels",
+  },
+  [HydroMatrix.MaxDailyReservoirLevels]: {
+    title: "Max Res Level",
+    url: "input/hydro/series/{areaId}/maxDailyReservoirLevels",
   },
 };
 
