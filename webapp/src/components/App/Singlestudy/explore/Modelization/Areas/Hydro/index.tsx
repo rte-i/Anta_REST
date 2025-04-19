@@ -18,8 +18,10 @@ import type { StudyMetadata } from "../../../../../../../common/types";
 import TabWrapper from "../../../TabWrapper";
 import useAppSelector from "../../../../../../../redux/hooks/useAppSelector";
 import { getCurrentAreaId } from "../../../../../../../redux/selectors";
-import { getAdvancedParamsFormFields } from "../../../Configuration/AdvancedParameters/utils";
-import type { AdvancedParamsFormFields } from "../../../Configuration/AdvancedParameters/utils";
+import {
+  getAdvancedParamsFormFields,
+  type AdvancedParamsFormFields,
+} from "../../../Configuration/AdvancedParameters/utils";
 
 function Hydro() {
   const { study } = useOutletContext<{ study: StudyMetadata }>();
