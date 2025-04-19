@@ -26,3 +26,12 @@ default_4_fixed_hourly.flags.writeable = False
 
 default_8_fixed_hourly = np.zeros((8760, 8), dtype=np.float64)
 default_8_fixed_hourly.flags.writeable = False
+
+default_res_level_max_daily = np.full((365, 1), 1.0, dtype=np.float64)
+default_res_level_max_daily.flags.writeable = False
+
+default_res_level_avg_daily = np.full((365, 1), 0.5, dtype=np.float64)
+default_res_level_avg_daily.flags.writeable = False
+
+default_max_daily_gen_energy = np.full((365, 1), 24.0, dtype=np.float64)
+default_max_daily_gen_energy.flags.writeable = False
