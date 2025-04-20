@@ -288,6 +288,12 @@ class CreateArea(ICommand):
         if version >= STUDY_VERSION_9_2:
             new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyGenPower"] = null_scenario_matrix
             new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyPumpPower"] = null_scenario_matrix
+            new_area_data["input"]["hydro"]["common"]["capacity"][
+                f"maxDailyGenEnergy_{area_id}"
+            ] = hydro_max_energy_matrix
+            new_area_data["input"]["hydro"]["common"]["capacity"][
+                f"maxDailyPumpEnergy_{area_id}"
+            ] = hydro_max_energy_matrix
             new_area_data["input"]["hydro"]["series"][area_id]["maxDailyReservoirLevels"] = max_res_level_matrix
             new_area_data["input"]["hydro"]["series"][area_id]["minDailyReservoirLevels"] = min_res_level_matrix
             new_area_data["input"]["hydro"]["series"][area_id]["avgDailyReservoirLevels"] = avg_res_level_matrix
