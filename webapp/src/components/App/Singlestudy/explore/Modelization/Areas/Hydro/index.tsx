@@ -62,15 +62,15 @@ function Hydro() {
         ? [
             {
               label: "Min Res Level",
-              path: `${basePath}/minDailyReservoirLevels`,
+              path: `${basePath}/mindailyreservoirlevels`,
             },
             {
               label: "Avg Res Level",
-              path: `${basePath}/avgDailyReservoirLevels`,
+              path: `${basePath}/avgdailyreservoirlevels`,
             },
             {
               label: "Max Res Level",
-              path: `${basePath}/maxDailyReservoirLevels`,
+              path: `${basePath}/maxdailyreservoirlevels`,
             },
           ]
         : []),
@@ -78,12 +78,14 @@ function Hydro() {
         ? [
             {
               label: "Max Gen",
-              path: `${basePath}/maxHourlyGenPower`,
+              path: `${basePath}/maxhourlygenpower`,
             },
             {
               label: "Max Pump",
-              path: `${basePath}/maxHourlyPumpPower`,
+              path: `${basePath}/maxhourlypumppower`,
             },
+            { label: "Hours at Pmax Gen", path: `${basePath}/maxdailygenenergy` },
+            { label: "Hours at Pmax Pump", path: `${basePath}/maxdailypumpenergy` },
           ]
         : []),
     ].filter(Boolean);
