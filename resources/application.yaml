@@ -23,7 +23,7 @@ launcher:
 
   local:
     binaries:
-      920: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/solver/920/antares-9.2-solver
+      920: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/solver/920-beta/antares-9.2-solver-beta
     enable_nb_cores_detection: true
 
 # See https://fastapi.tiangolo.com/advanced/behind-a-proxy/
