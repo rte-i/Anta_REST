@@ -11,8 +11,9 @@
 # This file is part of the Antares project.
 
 
-import pandas as pd
 from typing import List, TypeAlias
+
+import pandas as pd
 
 # Define MatrixData as float for type annotation purposes
 MatrixData: TypeAlias = float
