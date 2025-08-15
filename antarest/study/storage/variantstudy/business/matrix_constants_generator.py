@@ -18,13 +18,19 @@ import pandas as pd
 from antares.study.version import StudyVersion
 from filelock import FileLock
 
-from antarest.matrixstore.service import (MATRIX_PROTOCOL_PREFIX,
-                                          ISimpleMatrixService)
+from antarest.matrixstore.service import MATRIX_PROTOCOL_PREFIX, ISimpleMatrixService
 from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_2
 from antarest.study.storage.variantstudy.business import matrix_constants
 from antarest.study.storage.variantstudy.business.matrix_constants.common import (
-    DAILY_ROW_OF_0_5S, DAILY_ROW_OF_0S, DAILY_ROW_OF_1S, DAILY_ROW_OF_24S,
-    FIXED_4_COLUMNS, FIXED_8_COLUMNS, NULL_MATRIX, NULL_SCENARIO_MATRIX)
+    DAILY_ROW_OF_0_5S,
+    DAILY_ROW_OF_0S,
+    DAILY_ROW_OF_1S,
+    DAILY_ROW_OF_24S,
+    FIXED_4_COLUMNS,
+    FIXED_8_COLUMNS,
+    NULL_MATRIX,
+    NULL_SCENARIO_MATRIX,
+)
 
 # TODO: put index into variable
 
