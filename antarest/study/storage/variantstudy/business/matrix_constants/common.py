@@ -12,6 +12,10 @@
 
 
 import pandas as pd
+from typing import List, TypeAlias
+
+# Define MatrixData as float for type annotation purposes
+MatrixData: TypeAlias = float
 
 NULL_MATRIX = pd.DataFrame()
 NULL_SCENARIO_MATRIX = pd.DataFrame([[0.0]] * 8760)
