@@ -12,17 +12,14 @@
  * This file is part of the Antares project.
  */
 
-import { Backdrop, Box, CircularProgress } from "@mui/material";
+import { Backdrop, CircularProgress } from "@mui/material";
 
 interface BackdropLoadingProps {
   open: boolean;
-  children?: React.ReactNode;
 }
 
-function BackdropLoading(props: BackdropLoadingProps) {
-  const { open, children } = props;
-
-  const Comp = (
+function BackdropLoading({ open }: BackdropLoadingProps) {
+  return (
     <Backdrop
       open={open}
       sx={{
@@ -30,20 +27,9 @@ function BackdropLoading(props: BackdropLoadingProps) {
         zIndex: (theme) => theme.zIndex.drawer + 1,
       }}
     >
-      <CircularProgress color="inherit" />
+      <CircularProgress color="primary" />
     </Backdrop>
   );
-
-  if (children) {
-    return (
-      <Box sx={{ position: "relative" }}>
-        {children}
-        {Comp}
-      </Box>
-    );
-  }
-
-  return Comp;
 }
 
 export default BackdropLoading;

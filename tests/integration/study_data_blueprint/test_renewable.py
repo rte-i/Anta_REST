@@ -37,6 +37,7 @@ We should test the following end poins:
 """
 
 import re
+import time
 import typing as t
 
 import numpy as np
@@ -44,13 +45,8 @@ import pytest
 from starlette.testclient import TestClient
 
 from antarest.core.tasks.model import TaskStatus
-from antarest.core.utils.string import to_camel_case
 from antarest.study.storage.rawstudy.model.filesystem.config.identifier import transform_name_to_id
-from antarest.study.storage.rawstudy.model.filesystem.config.renewable import RenewableProperties
 from tests.integration.utils import wait_task_completion
-
-DEFAULT_PROPERTIES = RenewableProperties(name="Dummy").model_dump(mode="json")
-DEFAULT_PROPERTIES = {to_camel_case(k): v for k, v in DEFAULT_PROPERTIES.items() if k != "name"}
 
 # noinspection SpellCheckingInspection
 EXISTING_CLUSTERS = []
@@ -115,12 +111,12 @@ class TestRenewable:
 
         # We can create a renewable cluster with the following properties:
         fr_solar_pv_props = {
-            **DEFAULT_PROPERTIES,
             "name": fr_solar_pv,
             "group": "Solar PV",
             "nominalCapacity": 5001,
             "unitCount": 1,
             "tsInterpretation": "production-factor",
+            "enabled": True,
         }
         res = client.post(
             f"/v1/studies/{internal_study_id}/areas/{area_id}/clusters/renewable",
@@ -178,6 +174,7 @@ class TestRenewable:
         assert res.json() == EXISTING_CLUSTERS + [expected_fr_solar_pv_cfg]
 
         # updating properties
+        # Ensures we're able to process a name even if we don't support the renaming yet
         res = client.patch(
             f"/v1/studies/{internal_study_id}/areas/{area_id}/clusters/renewable/{fr_solar_pv_id}",
             headers={"Authorization": f"Bearer {user_access_token}"},
@@ -189,7 +186,6 @@ class TestRenewable:
         assert res.status_code == 200, res.json()
         expected_fr_solar_pv_cfg = {
             **expected_fr_solar_pv_cfg,
-            "name": "FR Solar pv old 1",
             "nominalCapacity": 5132,
         }
         assert res.json() == expected_fr_solar_pv_cfg
@@ -412,10 +408,7 @@ class TestRenewable:
         )
         assert res.status_code == 500, res.json()
         obj = res.json()
-        description = obj["description"]
-        assert bad_area_id in description
-        assert re.search(r"Area ", description, flags=re.IGNORECASE)
-        assert re.search(r"does not exist ", description, flags=re.IGNORECASE)
+        assert f"The area '{bad_area_id}' does not exist" in obj["description"]
 
         # Check POST with wrong `group`
         res = client.post(
@@ -441,9 +434,7 @@ class TestRenewable:
         )
         assert res.status_code == 404, res.json()
         obj = res.json()
-        description = obj["description"]
-        assert bad_area_id in description
-        assert re.search(r"not a child of ", description, flags=re.IGNORECASE)
+        assert bad_area_id in obj["description"]
 
         # Check PATCH with the wrong `cluster_id`
         bad_cluster_id = "bad_cluster"
@@ -614,9 +605,66 @@ class TestRenewable:
         assert actions == [
             "create_area",
             "create_renewables_cluster",
-            "update_config",
+            "update_renewables_clusters",
             "replace_matrix",
             "create_renewables_cluster",
             "replace_matrix",
             "remove_renewables_cluster",
         ]
+
+    def test_update_multiple_renewable_clusters(self, client: TestClient, user_access_token: str) -> None:
+        client.headers = {"Authorization": f"Bearer {user_access_token}"}
+
+        # Create a study with one area
+        res = client.post("/v1/studies", params={"name": "study_test", "version": "8.8"})
+        study_id = res.json()
+        area_id = "area_1"
+        res = client.post(f"/v1/studies/{study_id}/areas", json={"name": area_id, "type": "AREA"})
+        res.raise_for_status()
+
+        # Creates 50 renewable clusters inside the same area
+        body = {}
+        for k in range(50):
+            cluster_id = f"renewable_{k}"
+            res = client.post(f"/v1/studies/{study_id}/areas/{area_id}/clusters/renewable", json={"name": cluster_id})
+            res.raise_for_status()
+            body[f"{area_id} / {cluster_id}"] = {"enabled": False}
+
+        # Modify all of them with the table-mode endpoint. Due to new code this should be pretty fast.
+        start = time.time()
+        res = client.put(f"/v1/studies/{study_id}/table-mode/renewables", json=body)
+        end = time.time()
+        assert res.status_code in {200, 201}
+        duration = end - start
+        assert duration < 1
+
+        # Asserts the changes are effective.
+        res = client.get(f"/v1/studies/{study_id}/areas/{area_id}/clusters/renewable")
+        assert res.status_code == 200
+        for renewable in res.json():
+            assert renewable["enabled"] is False
+
+        # Create a variant from the study
+        res = client.post(f"/v1/studies/{study_id}/variants?name=var_1")
+        study_id = res.json()
+
+        # Update all renewables
+        new_body = {}
+        for key in body.keys():
+            new_body[key] = {"nominalCapacity": 14}
+        res = client.put(f"/v1/studies/{study_id}/table-mode/renewables", json=new_body)
+        assert res.status_code in {200, 201}
+
+        # Asserts changes are effective
+        res = client.get(f"/v1/studies/{study_id}/areas/{area_id}/clusters/renewable")
+        assert res.status_code == 200
+        for renewable in res.json():
+            assert renewable["enabled"] is False
+            assert renewable["nominalCapacity"] == 14
+
+        # Asserts only one command is created, and it's update_renewable_clusters
+        res = client.get(f"/v1/studies/{study_id}/commands")
+        assert res.status_code == 200
+        json_result = res.json()
+        assert len(json_result) == 1
+        assert json_result[0]["action"] == "update_renewables_clusters"

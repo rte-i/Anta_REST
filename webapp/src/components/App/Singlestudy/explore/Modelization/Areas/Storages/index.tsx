@@ -12,38 +12,36 @@
  * This file is part of the Antares project.
  */
 
+import { Box, Tooltip } from "@mui/material";
+import { createMRTColumnHelper } from "material-react-table";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { createMRTColumnHelper } from "material-react-table";
-import { Box, Tooltip } from "@mui/material";
-import { useLocation, useNavigate, useOutletContext } from "react-router-dom";
-import type { StudyMetadata } from "../../../../../../../common/types";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import usePromiseWithSnackbarError from "../../../../../../../hooks/usePromiseWithSnackbarError";
 import useAppSelector from "../../../../../../../redux/hooks/useAppSelector";
 import { getCurrentAreaId } from "../../../../../../../redux/selectors";
+import type { StudyMetadata } from "../../../../../../../types/types";
 import GroupedDataTable from "../../../../../../common/GroupedDataTable";
-import {
-  getStorages,
-  deleteStorages,
-  createStorage,
-  STORAGE_GROUPS,
-  duplicateStorage,
-  getStoragesTotals,
-  type Storage,
-  type StorageGroup,
-} from "./utils";
-import usePromiseWithSnackbarError from "../../../../../../../hooks/usePromiseWithSnackbarError";
-import type { TRow } from "../../../../../../common/GroupedDataTable/types";
 import BooleanCell from "../../../../../../common/GroupedDataTable/cellRenderers/BooleanCell";
+import type { TRow } from "../../../../../../common/GroupedDataTable/types";
+import {
+  createStorage,
+  deleteStorages,
+  duplicateStorage,
+  getStorages,
+  getStoragesTotals,
+  STORAGE_GROUPS,
+  type FormalizedStorage,
+} from "./utils";
 
-const columnHelper = createMRTColumnHelper<Storage>();
+const columnHelper = createMRTColumnHelper<FormalizedStorage>();
 
 function Storages() {
   const { study } = useOutletContext<{ study: StudyMetadata }>();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const location = useLocation();
   const areaId = useAppSelector(getCurrentAreaId);
-  const studyVersion = parseInt(study.version, 10);
+  const studyVersion = Number(study.version);
 
   const { data: storages = [], isLoading } = usePromiseWithSnackbarError(
     () => getStorages(study.id, areaId),
@@ -133,6 +131,12 @@ function Storages() {
         filterVariant: "checkbox",
         Cell: BooleanCell,
       }),
+      studyVersion >= 920 &&
+        columnHelper.accessor("efficiencyWithdrawal", {
+          header: t("study.modelization.storages.efficiencyWithdrawal"),
+          size: 50,
+          Cell: ({ cell }) => `${Math.round(cell.getValue() * 100)}`,
+        }),
     ].filter(Boolean);
   }, [studyVersion, t, totals]);
 
@@ -140,21 +144,21 @@ function Storages() {
   // Event handlers
   ////////////////////////////////////////////////////////////////
 
-  const handleCreate = (values: TRow<StorageGroup>) => {
+  const handleCreate = (values: TRow) => {
     return createStorage(study.id, areaId, values);
   };
 
-  const handleDuplicate = (row: Storage, newName: string) => {
+  const handleDuplicate = (row: FormalizedStorage, newName: string) => {
     return duplicateStorage(study.id, areaId, row.id, newName);
   };
 
-  const handleDelete = (rows: Storage[]) => {
+  const handleDelete = (rows: FormalizedStorage[]) => {
     const ids = rows.map((row) => row.id);
     return deleteStorages(study.id, areaId, ids);
   };
 
-  const handleNameClick = (row: Storage) => {
-    navigate(`${location.pathname}/${row.id}`);
+  const handleNameClick = (row: FormalizedStorage) => {
+    navigate(row.id);
   };
 
   ////////////////////////////////////////////////////////////////
@@ -166,7 +170,8 @@ function Storages() {
       isLoading={isLoading}
       data={storages || []}
       columns={columns}
-      groups={[...STORAGE_GROUPS]}
+      groups={[...STORAGE_GROUPS] as string[]}
+      allowNewGroups={studyVersion >= 920}
       onCreate={handleCreate}
       onDuplicate={handleDuplicate}
       onDelete={handleDelete}

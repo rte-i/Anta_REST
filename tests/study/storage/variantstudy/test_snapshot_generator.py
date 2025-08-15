@@ -26,12 +26,12 @@ from antares.study.version import StudyVersion
 from antarest.core.exceptions import VariantGenerationError
 from antarest.core.interfaces.cache import CacheConstants
 from antarest.core.jwt import JWTGroup, JWTUser
-from antarest.core.requests import RequestParameters
 from antarest.core.roles import RoleType
 from antarest.core.serde.ini_reader import IniReader
 from antarest.core.tasks.service import ITaskNotifier
 from antarest.core.utils.fastapi_sqlalchemy import db
 from antarest.login.model import Group, Role, User
+from antarest.login.utils import current_user_context
 from antarest.study.model import RawStudy, Study, StudyAdditionalData
 from antarest.study.storage.rawstudy.raw_study_service import RawStudyService
 from antarest.study.storage.variantstudy.model.dbmodel import CommandBlock, VariantStudy, VariantStudySnapshot
@@ -39,7 +39,7 @@ from antarest.study.storage.variantstudy.model.model import CommandDTO
 from antarest.study.storage.variantstudy.snapshot_generator import SnapshotGenerator, search_ref_study
 from antarest.study.storage.variantstudy.variant_study_service import VariantStudyService
 from tests.db_statement_recorder import DBStatementRecorder
-from tests.helpers import AnyUUID, with_db_context
+from tests.helpers import AnyUUID, with_admin_user, with_db_context
 
 logger = logging.getLogger(__name__)
 
@@ -204,9 +204,9 @@ class TestSearchRefStudy:
                 id=str(uuid.uuid4()),
                 study_id=variant3.id,
                 index=0,
-                command="update_thermal_cluster",
+                command="update_thermal_clusters",
                 version=1,
-                args='{"area_name": "DE", "cluster_name": "DE", "capacity": 1500}',
+                args='{"cluster_properties": {"DE": {"DE": {"enabled": False}}}}',
             ),
         ]
 
@@ -500,9 +500,9 @@ class TestSearchRefStudy:
                 id=str(uuid.uuid4()),
                 study_id=variant1.id,
                 index=2,
-                command="update_thermal_cluster",
+                command="update_thermal_clusters",
                 version=1,
-                args='{"area_name": "DE", "cluster_name": "DE", "capacity": 1500}',
+                args='{"cluster_properties": {"DE": {"DE": {"enabled": False}}}}',
             ),
         ]
 
@@ -559,9 +559,9 @@ class TestSearchRefStudy:
                 id=str(uuid.uuid4()),
                 study_id=variant1.id,
                 index=2,
-                command="update_thermal_cluster",
+                command="update_thermal_clusters",
                 version=1,
-                args='{"area_name": "DE", "cluster_name": "DE", "capacity": 1500}',
+                args='{"cluster_properties": {"DE": {"DE": {"enabled": False}}}}',
             ),
         ]
 
@@ -614,9 +614,9 @@ class TestSearchRefStudy:
                 id=str(uuid.uuid4()),
                 study_id=variant1.id,
                 index=2,
-                command="update_thermal_cluster",
+                command="update_thermal_clusters",
                 version=1,
-                args='{"area_name": "DE", "cluster_name": "DE", "capacity": 1500}',
+                args='{"cluster_properties": {"DE": {"DE": {"enabled": False}}}}',
             ),
         ]
 
@@ -669,9 +669,9 @@ class TestSearchRefStudy:
                 id=str(uuid.uuid4()),
                 study_id=variant1.id,
                 index=2,
-                command="update_thermal_cluster",
+                command="update_thermal_clusters",
                 version=1,
-                args='{"area_name": "DE", "cluster_name": "DE", "capacity": 1500}',
+                args='{"cluster_properties": {"DE": {"DE": {"enabled": False}}}}',
             ),
         ]
 
@@ -783,31 +783,31 @@ class TestSnapshotGenerator:
         with db():
             # Create un new variant
             name = "my-variant"
-            params = RequestParameters(user=jwt_user)
-            variant_study = variant_study_service.create_variant_study(root_study_id, name, params=params)
+            with current_user_context(jwt_user):
+                variant_study = variant_study_service.create_variant_study(root_study_id, name)
             study_version = StudyVersion.parse(variant_study.version)
 
             # Append some commands
-            variant_study_service.append_commands(
-                variant_study.id,
-                [
-                    CommandDTO(action="create_area", args={"area_name": "North"}, study_version=study_version),
-                    CommandDTO(action="create_area", args={"area_name": "South"}, study_version=study_version),
-                    CommandDTO(
-                        action="create_link", args={"area1": "north", "area2": "south"}, study_version=study_version
-                    ),
-                    CommandDTO(
-                        action="create_cluster",
-                        args={
-                            "area_id": "south",
-                            "cluster_name": "gas_cluster",
-                            "parameters": {"group": "Gas", "unitcount": 1, "nominalcapacity": 500},
-                        },
-                        study_version=study_version,
-                    ),
-                ],
-                params=params,
-            )
+            with current_user_context(jwt_user):
+                variant_study_service.append_commands(
+                    variant_study.id,
+                    [
+                        CommandDTO(action="create_area", args={"area_name": "North"}, study_version=study_version),
+                        CommandDTO(action="create_area", args={"area_name": "South"}, study_version=study_version),
+                        CommandDTO(
+                            action="create_link", args={"area1": "north", "area2": "south"}, study_version=study_version
+                        ),
+                        CommandDTO(
+                            action="create_cluster",
+                            args={
+                                "area_id": "south",
+                                "cluster_name": "gas_cluster",
+                                "parameters": {"group": "Gas", "unitcount": 1, "nominalcapacity": 500},
+                            },
+                            study_version=study_version,
+                        ),
+                    ],
+                )
             return variant_study
 
     def test_init(self, variant_study_service: VariantStudyService) -> None:
@@ -819,22 +819,18 @@ class TestSnapshotGenerator:
             raw_study_service=variant_study_service.raw_study_service,
             command_factory=variant_study_service.command_factory,
             study_factory=variant_study_service.study_factory,
-            patch_service=variant_study_service.patch_service,
             repository=variant_study_service.repository,
         )
         assert generator.cache == variant_study_service.cache
         assert generator.raw_study_service == variant_study_service.raw_study_service
         assert generator.command_factory == variant_study_service.command_factory
         assert generator.study_factory == variant_study_service.study_factory
-        assert generator.patch_service == variant_study_service.patch_service
         assert generator.repository == variant_study_service.repository
 
+    @with_admin_user
     @with_db_context
     def test_generate__nominal_case(
-        self,
-        variant_study: VariantStudy,
-        variant_study_service: VariantStudyService,
-        jwt_user: JWTUser,
+        self, variant_study: VariantStudy, variant_study_service: VariantStudyService
     ) -> None:
         """
         Test the generation of a variant study based on a raw study.
@@ -860,7 +856,6 @@ class TestSnapshotGenerator:
             raw_study_service=variant_study_service.raw_study_service,
             command_factory=variant_study_service.command_factory,
             study_factory=variant_study_service.study_factory,
-            patch_service=variant_study_service.patch_service,
             repository=variant_study_service.repository,
         )
 
@@ -869,7 +864,6 @@ class TestSnapshotGenerator:
         with DBStatementRecorder(db.session.bind) as db_recorder:
             results = generator.generate_snapshot(
                 variant_study.id,
-                jwt_user,
                 denormalize=False,
                 from_scratch=False,
                 notifier=notifier,
@@ -1024,12 +1018,10 @@ class TestSnapshotGenerator:
         # Check: the simulation outputs are not copied.
         assert not (snapshot_dir / "output").exists()
 
+    @with_admin_user
     @with_db_context
     def test_generate__with_denormalize_true(
-        self,
-        variant_study: VariantStudy,
-        variant_study_service: VariantStudyService,
-        jwt_user: JWTUser,
+        self, variant_study: VariantStudy, variant_study_service: VariantStudyService
     ) -> None:
         """
         Test the generation of a variant study with matrices de-normalization.
@@ -1040,13 +1032,11 @@ class TestSnapshotGenerator:
             raw_study_service=variant_study_service.raw_study_service,
             command_factory=variant_study_service.command_factory,
             study_factory=variant_study_service.study_factory,
-            patch_service=variant_study_service.patch_service,
             repository=variant_study_service.repository,
         )
 
         results = generator.generate_snapshot(
             variant_study.id,
-            jwt_user,
             denormalize=True,
             from_scratch=False,
         )
@@ -1092,12 +1082,10 @@ class TestSnapshotGenerator:
         array = np.loadtxt(snapshot_dir / "input/thermal/series/south/gas_cluster/series.txt", delimiter="\t")
         assert array.size == 0
 
+    @with_admin_user
     @with_db_context
     def test_generate__with_invalid_command(
-        self,
-        variant_study: VariantStudy,
-        variant_study_service: VariantStudyService,
-        jwt_user: JWTUser,
+        self, variant_study: VariantStudy, variant_study_service: VariantStudyService
     ) -> None:
         """
         Test the generation of a variant study with an invalid command.
@@ -1105,14 +1093,12 @@ class TestSnapshotGenerator:
         The snapshot directory must be removed (and no temporary directory must be left).
         """
         # Append an invalid command to the variant study.
-        params = RequestParameters(user=jwt_user)
         study_version = StudyVersion.parse(variant_study.version)
         variant_study_service.append_commands(
             variant_study.id,
             [
                 CommandDTO(action="create_area", args={"area_name": "North"}, study_version=study_version),  # duplicate
             ],
-            params=params,
         )
 
         generator = SnapshotGenerator(
@@ -1120,18 +1106,15 @@ class TestSnapshotGenerator:
             raw_study_service=variant_study_service.raw_study_service,
             command_factory=variant_study_service.command_factory,
             study_factory=variant_study_service.study_factory,
-            patch_service=variant_study_service.patch_service,
             repository=variant_study_service.repository,
         )
 
         err_msg = (
-            f"Failed to generate variant study {variant_study.id}:"
-            f" Area 'North' already exists and could not be created"
+            f"Failed to generate variant study {variant_study.id}: Area 'North' already exists and could not be created"
         )
         with pytest.raises(VariantGenerationError, match=re.escape(err_msg)):
             generator.generate_snapshot(
                 variant_study.id,
-                jwt_user,
                 denormalize=False,
                 from_scratch=False,
             )
@@ -1143,12 +1126,12 @@ class TestSnapshotGenerator:
         # Check: no temporary directory is left.
         assert list(snapshot_dir.parent.iterdir()) == []
 
+    @with_admin_user
     @with_db_context
     def test_generate__notification_failure(
         self,
         variant_study: VariantStudy,
         variant_study_service: VariantStudyService,
-        jwt_user: JWTUser,
         caplog: pytest.LogCaptureFixture,
     ) -> None:
         """
@@ -1160,7 +1143,6 @@ class TestSnapshotGenerator:
             raw_study_service=variant_study_service.raw_study_service,
             command_factory=variant_study_service.command_factory,
             study_factory=variant_study_service.study_factory,
-            patch_service=variant_study_service.patch_service,
             repository=variant_study_service.repository,
         )
 
@@ -1169,7 +1151,6 @@ class TestSnapshotGenerator:
         with caplog.at_level(logging.WARNING):
             results = generator.generate_snapshot(
                 variant_study.id,
-                jwt_user,
                 denormalize=False,
                 from_scratch=False,
                 notifier=notifier,
@@ -1209,12 +1190,12 @@ class TestSnapshotGenerator:
         # Check th logs
         assert "Something went wrong" in caplog.text
 
+    @with_admin_user
     @with_db_context
     def test_generate__variant_of_variant(
         self,
         variant_study: VariantStudy,
         variant_study_service: VariantStudyService,
-        jwt_user: JWTUser,
     ) -> None:
         """
         Test the generation of a variant study of a variant study.
@@ -1224,21 +1205,18 @@ class TestSnapshotGenerator:
             raw_study_service=variant_study_service.raw_study_service,
             command_factory=variant_study_service.command_factory,
             study_factory=variant_study_service.study_factory,
-            patch_service=variant_study_service.patch_service,
             repository=variant_study_service.repository,
         )
 
         # Generate the variant once.
         generator.generate_snapshot(
             variant_study.id,
-            jwt_user,
             denormalize=False,
             from_scratch=False,
         )
 
-        # Create a new variant of the variant study.
-        params = RequestParameters(user=jwt_user)
-        new_variant = variant_study_service.create_variant_study(variant_study.id, "my-variant", params=params)
+        # Create a new variant of the variant study
+        new_variant = variant_study_service.create_variant_study(variant_study.id, "my-variant")
 
         # Append some commands to the new variant.
         study_version = StudyVersion.parse(new_variant.version)
@@ -1247,13 +1225,11 @@ class TestSnapshotGenerator:
             [
                 CommandDTO(action="create_area", args={"area_name": "East"}, study_version=study_version),
             ],
-            params=params,
         )
 
         # Generate the variant again.
         results = generator.generate_snapshot(
             new_variant.id,
-            jwt_user,
             denormalize=False,
             from_scratch=False,
         )

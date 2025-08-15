@@ -12,7 +12,7 @@
  * This file is part of the Antares project.
  */
 
-import type { StudyMetadata } from "../../../../../common/types";
+import type { StudyMetadata } from "../../../../../types/types";
 
 export interface ThematicTrimmingConfig {
   ovCost: boolean;
@@ -113,6 +113,9 @@ export interface ThematicTrimmingConfig {
   other5Level?: boolean;
   // Since v8.8
   stsCashflowByCluster?: boolean;
+  npcapHours?: boolean;
+  // Since v9.1
+  stsByGroup?: boolean;
 }
 
 export interface GetThematicTrimmingConfigParams {

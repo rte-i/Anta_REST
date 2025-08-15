@@ -13,13 +13,11 @@
 import concurrent.futures
 import http
 import logging
-import typing as t
+from typing import Any, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException
 
 from antarest.core.config import Config
-from antarest.core.jwt import JWTUser
-from antarest.core.requests import RequestParameters
 from antarest.core.tasks.model import TaskDTO, TaskListFilter
 from antarest.core.tasks.service import DEFAULT_AWAIT_MAX_TIMEOUT, TaskJobService
 from antarest.core.utils.utils import sanitize_uuid
@@ -40,16 +38,12 @@ def create_tasks_api(service: TaskJobService, config: Config) -> APIRouter:
     Returns:
         API router
     """
-    bp = APIRouter(prefix="/v1")
     auth = Auth(config)
+    bp = APIRouter(prefix="/v1", dependencies=[auth.required()])
 
     @bp.post("/tasks", tags=[APITag.tasks])
-    def list_tasks(
-        filter: TaskListFilter,
-        current_user: JWTUser = Depends(auth.get_current_user),
-    ) -> t.Any:
-        request_params = RequestParameters(user=current_user)
-        return service.list_tasks(filter, request_params)
+    def list_tasks(filter: TaskListFilter) -> Any:
+        return service.list_tasks(filter)
 
     @bp.get("/tasks/{task_id}", tags=[APITag.tasks], response_model=TaskDTO)
     def get_task(
@@ -57,7 +51,6 @@ def create_tasks_api(service: TaskJobService, config: Config) -> APIRouter:
         wait_for_completion: bool = False,
         with_logs: bool = False,
         timeout: int = DEFAULT_AWAIT_MAX_TIMEOUT,
-        current_user: JWTUser = Depends(auth.get_current_user),
     ) -> TaskDTO:
         """
         Retrieve information about a specific task.
@@ -76,8 +69,7 @@ def create_tasks_api(service: TaskJobService, config: Config) -> APIRouter:
         """
         sanitized_task_id = sanitize_uuid(task_id)
 
-        request_params = RequestParameters(user=current_user)
-        task_status = service.status_task(sanitized_task_id, request_params, with_logs)
+        task_status = service.status_task(sanitized_task_id, with_logs)
 
         if wait_for_completion and not task_status.status.is_final():
             # Ensure 0 <= timeout <= 48 h
@@ -93,29 +85,21 @@ def create_tasks_api(service: TaskJobService, config: Config) -> APIRouter:
                     detail="The request timed out while waiting for task completion.",
                 ) from exc
 
-        return service.status_task(sanitized_task_id, request_params, with_logs)
+        return service.status_task(sanitized_task_id, with_logs)
 
     @bp.put("/tasks/{task_id}/cancel", tags=[APITag.tasks])
-    def cancel_task(
-        task_id: str,
-        current_user: JWTUser = Depends(auth.get_current_user),
-    ) -> t.Any:
-        request_params = RequestParameters(user=current_user)
-        return service.cancel_task(task_id, request_params, dispatch=True)
+    def cancel_task(task_id: str) -> Any:
+        return service.cancel_task(task_id, dispatch=True)
 
     @bp.get(
         "/tasks/{task_id}/progress",
         tags=[APITag.tasks],
         summary="Retrieve task progress from task id",
-        response_model=t.Optional[int],
+        response_model=Optional[int],
     )
-    def get_progress(task_id: str, current_user: JWTUser = Depends(auth.get_current_user)) -> t.Optional[int]:
+    def get_progress(task_id: str) -> Optional[int]:
         sanitized_task_id = sanitize_uuid(task_id)
-        logger.info(
-            f"Fetching task progress of task {sanitized_task_id}",
-            extra={"user": current_user.id},
-        )
-        params = RequestParameters(user=current_user)
-        return service.get_task_progress(sanitized_task_id, params)
+        logger.info(f"Fetching task progress of task {sanitized_task_id}")
+        return service.get_task_progress(sanitized_task_id)
 
     return bp

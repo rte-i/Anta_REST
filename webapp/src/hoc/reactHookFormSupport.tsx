@@ -13,8 +13,11 @@
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import FieldSkeleton from "@/components/common/fieldEditors/FieldSkeleton";
 import hoistNonReactStatics from "hoist-non-react-statics";
-import { useContext, useMemo } from "react";
+import * as R from "ramda";
+import * as RA from "ramda-adjunct";
+import React, { useContext, useMemo } from "react";
 import {
   Controller,
   type ControllerRenderProps,
@@ -23,18 +26,15 @@ import {
   type FieldValues,
   type Validate,
 } from "react-hook-form";
-import * as R from "ramda";
-import * as RA from "ramda-adjunct";
-import { Skeleton } from "@mui/material";
-import { getComponentDisplayName } from "../utils/reactUtils";
-import type { FakeBlurEventHandler, FakeChangeEventHandler } from "../utils/feUtils";
-import type { ControlPlus, RegisterOptionsPlus } from "../components/common/Form/types";
 import FormContext from "../components/common/Form/FormContext";
+import type { ControlPlus, RegisterOptionsPlus } from "../components/common/Form/types";
+import type { FakeBlurEventHandler, FakeChangeEventHandler } from "../utils/feUtils";
+import { getComponentDisplayName } from "../utils/reactUtils";
 
 interface ReactHookFormSupport<TValue> {
   defaultValue?: NonNullable<TValue> | ((props: any) => NonNullable<TValue>);
   setValueAs?: (value: any) => any;
-  preValidate?: (value: any, formValues: any) => boolean;
+  preValidate?: (value: any, formValues: any) => boolean | string | undefined;
 }
 
 // `...args: any` allows to be compatible with all field editors
@@ -47,9 +47,9 @@ interface FieldEditorProps<TValue> {
   onBlur?: EventHandler;
   name?: string;
   disabled?: boolean;
-  // inputRef?: any;
-  // error?: boolean;
-  // helperText?: string;
+  helperText?: React.ReactNode;
+  error?: boolean;
+  inputRef?: React.Ref<any>;
 }
 
 export type ReactHookFormSupportProps<
@@ -66,7 +66,6 @@ export type ReactHookFormSupportProps<
         | "valueAsDate"
         | "disabled"
         // Not necessary
-        | "onChange"
         | "onBlur"
       >;
       shouldUnregister?: boolean;
@@ -78,6 +77,9 @@ export type ReactHookFormSupportProps<
       shouldUnregister?: never;
     };
 
+// Allow to prevent to start with a space
+const defaultSetValueAs = (v: any) => (typeof v === "string" ? v.trimStart() : v);
+
 /**
  * Provides React Hook Form support to a field editor component, enhancing it with form control and validation capabilities.
  * It integrates custom validation logic, value transformation, and handles form submission state.
@@ -88,7 +90,7 @@ export type ReactHookFormSupportProps<
  * @returns A function that takes a field editor component and returns a new component wrapped with React Hook Form functionality.
  */
 function reactHookFormSupport<TValue>(options: ReactHookFormSupport<TValue> = {}) {
-  const { preValidate, setValueAs = R.identity } = options;
+  const { preValidate, setValueAs = defaultSetValueAs } = options;
 
   /**
    * Wraps the provided field editor component with React Hook Form functionality,
@@ -97,7 +99,7 @@ function reactHookFormSupport<TValue>(options: ReactHookFormSupport<TValue> = {}
    * @param FieldEditor - The field editor component to wrap.
    * @returns The wrapped component with added React Hook Form support.
    */
-  function wrapWithReactHookFormSupport<TProps extends FieldEditorProps<TValue>>(
+  function withReactHookFormSupport<TProps extends FieldEditorProps<TValue>>(
     FieldEditor: React.ComponentType<TProps>,
   ) {
     /**
@@ -107,7 +109,7 @@ function reactHookFormSupport<TValue>(options: ReactHookFormSupport<TValue> = {}
      * @param props - The props of the field editor, extended with React Hook Form and custom options.
      * @returns The field editor component wrapped with React Hook Form functionality.
      */
-    function ReactHookFormSupport<
+    function WithReactHookFormSupport<
       TFieldValues extends FieldValues = FieldValues,
       TFieldName extends FieldPath<TFieldValues> = FieldPath<TFieldValues>,
       TContext = any,
@@ -166,7 +168,13 @@ function reactHookFormSupport<TValue>(options: ReactHookFormSupport<TValue> = {}
         if (preValidate) {
           if (RA.isFunction(validate)) {
             return (value, formValues) => {
-              return preValidate?.(value, formValues) && validate(value, formValues);
+              const result = preValidate?.(value, formValues);
+
+              if (typeof result === "string" || result === false) {
+                return result;
+              }
+
+              return validate(value, formValues);
             };
           }
 
@@ -174,7 +182,13 @@ function reactHookFormSupport<TValue>(options: ReactHookFormSupport<TValue> = {}
             return Object.keys(validate).reduce(
               (acc, key) => {
                 acc[key] = (value, formValues) => {
-                  return preValidate?.(value, formValues) && validate[key](value, formValues);
+                  const result = preValidate?.(value, formValues);
+
+                  if (typeof result === "string" || result === false) {
+                    return result;
+                  }
+
+                  return validate[key](value, formValues);
                 };
                 return acc;
               },
@@ -219,7 +233,7 @@ function reactHookFormSupport<TValue>(options: ReactHookFormSupport<TValue> = {}
                 onBlur={handleBlur(onBlur)}
                 inputRef={ref}
                 error={!!error}
-                helperText={error?.message}
+                helperText={error?.message || feProps.helperText}
                 disabled={
                   (control._formState.isSubmitting && !isAutoSubmitEnabled) ||
                   fieldProps.disabled ||
@@ -230,26 +244,20 @@ function reactHookFormSupport<TValue>(options: ReactHookFormSupport<TValue> = {}
           />
         );
 
-        return control._formState.isLoading ? (
-          <Skeleton variant="rectangular" sx={{ borderRadius: "5px" }}>
-            {field}
-          </Skeleton>
-        ) : (
-          field
-        );
+        return control._formState.isLoading ? <FieldSkeleton>{field}</FieldSkeleton> : field;
       }
 
       return <FieldEditor {...(feProps as TProps)} />;
     }
 
-    ReactHookFormSupport.displayName = `ReactHookFormSupport(${getComponentDisplayName(
+    WithReactHookFormSupport.displayName = `WithReactHookFormSupport(${getComponentDisplayName(
       FieldEditor,
     )})`;
 
-    return hoistNonReactStatics(ReactHookFormSupport, FieldEditor);
+    return hoistNonReactStatics(WithReactHookFormSupport, FieldEditor);
   }
 
-  return wrapWithReactHookFormSupport;
+  return withReactHookFormSupport;
 }
 
 export default reactHookFormSupport;

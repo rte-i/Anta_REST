@@ -15,10 +15,10 @@ import json
 import logging
 import re
 import tempfile
-import typing as t
 import zipfile
 from enum import Enum
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple, cast
 
 from antares.study.version import StudyVersion
 
@@ -26,35 +26,35 @@ from antarest.core.model import JSON
 from antarest.core.serde.ini_reader import IniReader
 from antarest.core.serde.json import from_json
 from antarest.core.utils.archives import extract_lines_from_archive, is_archive_format, read_file_from_archive
+from antarest.study.business.model.binding_constraint_model import (
+    BindingConstraint,
+)
+from antarest.study.business.model.renewable_cluster_model import RenewableCluster
+from antarest.study.business.model.thermal_cluster_model import ThermalCluster
 from antarest.study.model import STUDY_VERSION_8_1, STUDY_VERSION_8_6
 from antarest.study.storage.rawstudy.model.filesystem.config.binding_constraint import (
-    DEFAULT_GROUP,
-    DEFAULT_OPERATOR,
-    DEFAULT_TIMESTEP,
+    parse_binding_constraint,
 )
 from antarest.study.storage.rawstudy.model.filesystem.config.exceptions import (
     SimulationParsingError,
     XpansionParsingError,
 )
-from antarest.study.storage.rawstudy.model.filesystem.config.field_validators import extract_filtering
 from antarest.study.storage.rawstudy.model.filesystem.config.identifier import transform_name_to_id
 from antarest.study.storage.rawstudy.model.filesystem.config.model import (
     Area,
-    BindingConstraintDTO,
     DistrictSet,
     FileStudyTreeConfig,
-    Link,
+    LinkConfig,
+    Mode,
     Simulation,
 )
-from antarest.study.storage.rawstudy.model.filesystem.config.renewable import (
-    RenewableConfigType,
-    create_renewable_config,
-)
+from antarest.study.storage.rawstudy.model.filesystem.config.renewable import parse_renewable_cluster
 from antarest.study.storage.rawstudy.model.filesystem.config.st_storage import (
     STStorageConfigType,
     create_st_storage_config,
 )
-from antarest.study.storage.rawstudy.model.filesystem.config.thermal import ThermalConfigType, create_thermal_config
+from antarest.study.storage.rawstudy.model.filesystem.config.thermal import parse_thermal_cluster
+from antarest.study.storage.rawstudy.model.filesystem.config.validation import extract_filtering
 from antarest.study.storage.rawstudy.model.filesystem.root.settings.generaldata import DUPLICATE_KEYS
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ def extract_data_from_archive(
     root: Path,
     posix_path: str,
     reader: IniReader,
-) -> t.Dict[str, t.Any]:
+) -> Dict[str, Any]:
     """
     Extract and process data from various types of files.
 
@@ -91,7 +91,7 @@ def extract_data_from_archive(
         return {}
 
 
-def build(study_path: Path, study_id: str, output_path: t.Optional[Path] = None) -> "FileStudyTreeConfig":
+def build(study_path: Path, study_id: str, output_path: Optional[Path] = None) -> "FileStudyTreeConfig":
     """
     Extracts data from the filesystem to build a study config.
 
@@ -132,8 +132,8 @@ def _extract_data_from_file(
     root: Path,
     inside_root_path: Path,
     file_type: FileType,
-    multi_ini_keys: t.Sequence[str] = (),
-) -> t.Any:
+    multi_ini_keys: Sequence[str] = (),
+) -> Any:
     """
     Extract and process data from various types of files.
 
@@ -190,7 +190,7 @@ def _parse_version(path: Path) -> StudyVersion:
     return StudyVersion.parse(version)
 
 
-def _parse_parameters(path: Path) -> t.Tuple[bool, t.List[str], str]:
+def _parse_parameters(path: Path) -> Tuple[bool, List[str], str]:
     general = _extract_data_from_file(
         root=path,
         inside_root_path=Path("settings/generaldata.ini"),
@@ -198,49 +198,24 @@ def _parse_parameters(path: Path) -> t.Tuple[bool, t.List[str], str]:
     )
 
     store_new_set: bool = general.get("output", {}).get("storenewset", False)
-    archive_input_series: t.List[str] = [
+    archive_input_series: List[str] = [
         e.strip() for e in general.get("output", {}).get("archives", "").strip().split(",") if e.strip()
     ]
     enr_modelling: str = general.get("other preferences", {}).get("renewable-generation-modelling", "aggregated")
     return store_new_set, archive_input_series, enr_modelling
 
 
-def _parse_bindings(root: Path) -> t.List[BindingConstraintDTO]:
+def _parse_bindings(root: Path) -> List[BindingConstraint]:
     bindings = _extract_data_from_file(
         root=root,
         inside_root_path=Path("input/bindingconstraints/bindingconstraints.ini"),
         file_type=FileType.SIMPLE_INI,
     )
-    output_list = []
-    for bind in bindings.values():
-        area_set = set()
-        # contains a set of strings in the following format: "area.cluster"
-        cluster_set = set()
-        # Default value for time_step
-        time_step = bind.get("type", DEFAULT_TIMESTEP)
-        # Default value for operator
-        operator = bind.get("operator", DEFAULT_OPERATOR)
-        # Default value for group
-        group = bind.get("group", DEFAULT_GROUP)
-        # Build areas and clusters based on terms
-        for key in bind:
-            if "%" in key:
-                areas = key.split("%", 1)
-                area_set.add(areas[0])
-                area_set.add(areas[1])
-            elif "." in key:
-                cluster_set.add(key)
-                area_set.add(key.split(".", 1)[0])
-
-        bc = BindingConstraintDTO(
-            id=bind["id"], areas=area_set, clusters=cluster_set, time_step=time_step, operator=operator, group=group
-        )
-        output_list.append(bc)
-
-    return output_list
+    version = _parse_version(root)
+    return [parse_binding_constraint(version, bc) for bc in bindings.values()]
 
 
-def _parse_sets(root: Path) -> t.Dict[str, DistrictSet]:
+def _parse_sets(root: Path) -> Dict[str, DistrictSet]:
     obj = _extract_data_from_file(
         root=root,
         inside_root_path=Path("input/areas/sets.ini"),
@@ -258,7 +233,7 @@ def _parse_sets(root: Path) -> t.Dict[str, DistrictSet]:
     }
 
 
-def _parse_areas(root: Path) -> t.Dict[str, Area]:
+def _parse_areas(root: Path) -> Dict[str, Area]:
     areas = _extract_data_from_file(
         root=root,
         inside_root_path=Path("input/areas/list.txt"),
@@ -268,7 +243,7 @@ def _parse_areas(root: Path) -> t.Dict[str, Area]:
     return {transform_name_to_id(a): parse_area(root, a) for a in areas}
 
 
-def parse_outputs(output_path: Path) -> t.Dict[str, Simulation]:
+def parse_outputs(output_path: Path) -> Dict[str, Simulation]:
     if not output_path.is_dir():
         return {}
     sims = {}
@@ -330,17 +305,16 @@ def _parse_xpansion_version(path: Path) -> str:
         raise XpansionParsingError(xpansion_json, f"key '{exc}' not found in JSON object") from exc
 
 
-_regex_eco_adq = re.compile(r"^(\d{8}-\d{4})(eco|adq)-?(.*)")
-match_eco_adq = _regex_eco_adq.match
+_regex_simulation_mode = re.compile(r"^(\d{8}-\d{4})(eco|adq|exp)-?(.*)")
+match_simulation_mode = _regex_simulation_mode.match
 
 
 def parse_simulation(path: Path, canonical_name: str) -> Simulation:
-    modes = {"eco": "economy", "adq": "adequacy"}
-    match = match_eco_adq(canonical_name)
+    match = match_simulation_mode(canonical_name)
     if match is None:
         raise SimulationParsingError(
             path,
-            reason=f"Filename '{canonical_name}' doesn't match {_regex_eco_adq.pattern}",
+            reason=f"Filename '{canonical_name}' doesn't match {_regex_simulation_mode.pattern}",
         )
 
     try:
@@ -363,7 +337,7 @@ def parse_simulation(path: Path, canonical_name: str) -> Simulation:
     error = not (path / "checkIntegrity.txt").exists()
     return Simulation(
         date=match.group(1),
-        mode=modes[match.group(2)],
+        mode=Mode.from_output_suffix(match.group(2)),
         name=match.group(3),
         nbyears=obj["general"]["nbyears"],
         by_year=obj["general"]["year-by-year"],
@@ -375,10 +349,10 @@ def parse_simulation(path: Path, canonical_name: str) -> Simulation:
     )
 
 
-def get_playlist(config: JSON) -> t.Optional[t.Dict[int, float]]:
+def get_playlist(config: JSON) -> Optional[Dict[int, float]]:
     general_config = config.get("general", {})
-    nb_years = t.cast(int, general_config.get("nbyears"))
-    playlist_activated = t.cast(bool, general_config.get("user-playlist", False))
+    nb_years = cast(int, general_config.get("nbyears"))
+    playlist_activated = cast(bool, general_config.get("user-playlist", False))
     if not playlist_activated:
         return None
     playlist_config = config.get("playlist", {})
@@ -429,26 +403,26 @@ def parse_area(root: Path, area: str) -> "Area":
     )
 
 
-def _parse_thermal(root: Path, area: str) -> t.List[ThermalConfigType]:
+def _parse_thermal(root: Path, area: str) -> List[ThermalCluster]:
     """
     Parse the thermal INI file, return an empty list if missing.
     """
     version = _parse_version(root)
     relpath = Path(f"input/thermal/clusters/{area}/list.ini")
-    config_dict: t.Dict[str, t.Any] = _extract_data_from_file(
+    config_dict: Dict[str, Any] = _extract_data_from_file(
         root=root, inside_root_path=relpath, file_type=FileType.SIMPLE_INI
     )
     config_list = []
     for section, values in config_dict.items():
         try:
-            config_list.append(create_thermal_config(version, **values, id=section))
+            config_list.append(parse_thermal_cluster(version, values))
         except ValueError as exc:
             config_path = root.joinpath(relpath)
             logger.warning(f"Invalid thermal configuration: '{section}' in '{config_path}'", exc_info=exc)
     return config_list
 
 
-def _parse_renewables(root: Path, area: str) -> t.List[RenewableConfigType]:
+def _parse_renewables(root: Path, area: str) -> List[RenewableCluster]:
     """
     Parse the renewables INI file, return an empty list if missing.
     """
@@ -461,7 +435,7 @@ def _parse_renewables(root: Path, area: str) -> t.List[RenewableConfigType]:
 
     # Since version 8.1 of the solver, we can use "renewable clusters" objects.
     relpath = Path(f"input/renewables/clusters/{area}/list.ini")
-    config_dict: t.Dict[str, t.Any] = _extract_data_from_file(
+    config_dict: Dict[str, Any] = _extract_data_from_file(
         root=root,
         inside_root_path=relpath,
         file_type=FileType.SIMPLE_INI,
@@ -469,14 +443,14 @@ def _parse_renewables(root: Path, area: str) -> t.List[RenewableConfigType]:
     config_list = []
     for section, values in config_dict.items():
         try:
-            config_list.append(create_renewable_config(version, **values, id=section))
+            config_list.append(parse_renewable_cluster(values))
         except ValueError as exc:
             config_path = root.joinpath(relpath)
             logger.warning(f"Invalid renewable configuration: '{section}' in '{config_path}'", exc_info=exc)
     return config_list
 
 
-def _parse_st_storage(root: Path, area: str) -> t.List[STStorageConfigType]:
+def _parse_st_storage(root: Path, area: str) -> List[STStorageConfigType]:
     """
     Parse the short-term storage INI file, return an empty list if missing.
     """
@@ -487,7 +461,7 @@ def _parse_st_storage(root: Path, area: str) -> t.List[STStorageConfigType]:
         return []
 
     relpath = Path(f"input/st-storage/clusters/{area}/list.ini")
-    config_dict: t.Dict[str, t.Any] = _extract_data_from_file(
+    config_dict: Dict[str, Any] = _extract_data_from_file(
         root=root,
         inside_root_path=relpath,
         file_type=FileType.SIMPLE_INI,
@@ -502,13 +476,13 @@ def _parse_st_storage(root: Path, area: str) -> t.List[STStorageConfigType]:
     return config_list
 
 
-def _parse_links_filtering(root: Path, area: str) -> t.Dict[str, Link]:
+def _parse_links_filtering(root: Path, area: str) -> Dict[str, LinkConfig]:
     properties_ini = _extract_data_from_file(
         root=root,
         inside_root_path=Path(f"input/links/{area}/properties.ini"),
         file_type=FileType.SIMPLE_INI,
     )
-    links_by_ids = {link_id: Link(**obj) for link_id, obj in properties_ini.items()}
+    links_by_ids = {link_id: LinkConfig(**obj) for link_id, obj in properties_ini.items()}
     return links_by_ids
 
 

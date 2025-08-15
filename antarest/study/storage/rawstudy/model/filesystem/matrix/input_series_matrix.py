@@ -12,8 +12,8 @@
 import io
 import logging
 import shutil
-import typing as t
 from pathlib import Path
+from typing import List, Optional
 
 import numpy as np
 import pandas as pd
@@ -25,8 +25,8 @@ from antarest.core.exceptions import ChildNotFoundError
 from antarest.core.model import JSON
 from antarest.core.utils.archives import read_original_file_in_archive
 from antarest.core.utils.utils import StopWatch
+from antarest.matrixstore.matrix_uri_mapper import MatrixUriMapper
 from antarest.study.storage.rawstudy.model.filesystem.config.model import FileStudyTreeConfig
-from antarest.study.storage.rawstudy.model.filesystem.context import ContextServer
 from antarest.study.storage.rawstudy.model.filesystem.inode import OriginalFile
 from antarest.study.storage.rawstudy.model.filesystem.matrix.matrix import MatrixFrequency, MatrixNode, dump_dataframe
 
@@ -40,13 +40,13 @@ class InputSeriesMatrix(MatrixNode):
 
     def __init__(
         self,
-        context: ContextServer,
+        matrix_mapper: MatrixUriMapper,
         config: FileStudyTreeConfig,
         freq: MatrixFrequency = MatrixFrequency.HOURLY,
-        nb_columns: t.Optional[int] = None,
-        default_empty: t.Optional[npt.NDArray[np.float64]] = None,
+        nb_columns: Optional[int] = None,
+        default_empty: Optional[npt.NDArray[np.float64]] = None,  # optional only for the capacity matrix in Xpansion
     ):
-        super().__init__(context=context, config=config, freq=freq)
+        super().__init__(matrix_mapper=matrix_mapper, config=config, freq=freq)
         self.nb_columns = nb_columns
         if default_empty is None:
             self.default_empty = None
@@ -54,17 +54,18 @@ class InputSeriesMatrix(MatrixNode):
             # Clone the template value and make it writable
             self.default_empty = np.copy(default_empty)
             self.default_empty.flags.writeable = True
+        # Removes the .link suffix if the matrix is normalized
+        self.config.path = self.config.path.parent / self.config.path.name.removesuffix(".link")
 
-    def parse_as_dataframe(self, file_path: t.Optional[Path] = None) -> pd.DataFrame:
+    @override
+    def parse_as_dataframe(self, file_path: Optional[Path] = None) -> pd.DataFrame:
         file_path = file_path or self.config.path
         try:
             stopwatch = StopWatch()
             link_path = self.get_link_path()
             if link_path.exists():
                 link = link_path.read_text()
-                matrix_json = self.context.resolver.resolve(link)
-                matrix_json = t.cast(JSON, matrix_json)
-                matrix: pd.DataFrame = pd.DataFrame(**matrix_json)
+                matrix = self.matrix_mapper.get_matrix(link)
             else:
                 try:
                     matrix = pd.read_csv(
@@ -82,6 +83,8 @@ class InputSeriesMatrix(MatrixNode):
                     raise ChildNotFoundError(f"File '{relpath}' not found in the study '{study_id}'") from e
             stopwatch.log_elapsed(lambda x: logger.info(f"Matrix parsed in {x}s"))
             final_matrix = matrix.dropna(how="any", axis=1)
+            if final_matrix.empty:
+                raise EmptyDataError
             return final_matrix
         except EmptyDataError:
             logger.warning(f"Empty file found when parsing {file_path}")
@@ -91,20 +94,12 @@ class InputSeriesMatrix(MatrixNode):
             return final_matrix
 
     @override
-    def parse_as_json(self, file_path: t.Optional[Path] = None) -> JSON:
-        df = self.parse_as_dataframe(file_path)
-        stopwatch = StopWatch()
-        data = t.cast(JSON, df.to_dict(orient="split"))
-        stopwatch.log_elapsed(lambda x: logger.info(f"Matrix to dict in {x}s"))
-        return data
-
-    @override
     def check_errors(
         self,
         data: JSON,
-        url: t.Optional[t.List[str]] = None,
+        url: Optional[List[str]] = None,
         raising: bool = False,
-    ) -> t.List[str]:
+    ) -> List[str]:
         self._assert_url_end(url)
 
         errors = []
@@ -150,7 +145,3 @@ class InputSeriesMatrix(MatrixNode):
         else:
             content = self.config.path.read_bytes()
         return OriginalFile(content=content, suffix=suffix, filename=filename)
-
-    @override
-    def get_default_empty_matrix(self) -> t.Optional[npt.NDArray[np.float64]]:
-        return self.default_empty

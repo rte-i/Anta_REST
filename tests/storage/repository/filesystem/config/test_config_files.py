@@ -18,8 +18,19 @@ from zipfile import ZipFile
 
 import pytest
 
+from antarest.core.serde.ini_writer import write_ini_file
+from antarest.study.business.model.binding_constraint_model import (
+    BindingConstraint,
+    ClusterTerm,
+    ConstraintTerm,
+    LinkTerm,
+)
+from antarest.study.business.model.common import FilterOption
+from antarest.study.business.model.renewable_cluster_model import RenewableCluster
+from antarest.study.business.model.thermal_cluster_model import ThermalCluster, ThermalCostGeneration
 from antarest.study.storage.rawstudy.model.filesystem.config.binding_constraint import BindingConstraintFrequency
 from antarest.study.storage.rawstudy.model.filesystem.config.files import (
+    _parse_bindings,
     _parse_links_filtering,
     _parse_renewables,
     _parse_sets,
@@ -27,23 +38,18 @@ from antarest.study.storage.rawstudy.model.filesystem.config.files import (
     _parse_thermal,
     build,
     parse_outputs,
+    parse_simulation,
 )
 from antarest.study.storage.rawstudy.model.filesystem.config.model import (
     Area,
-    BindingConstraintDTO,
     DistrictSet,
     FileStudyTreeConfig,
-    Link,
+    LinkConfig,
+    Mode,
     Simulation,
 )
-from antarest.study.storage.rawstudy.model.filesystem.config.renewable import RenewableConfig
 from antarest.study.storage.rawstudy.model.filesystem.config.st_storage import STStorageConfig, STStorageGroup
-from antarest.study.storage.rawstudy.model.filesystem.config.thermal import (
-    Thermal860Config,
-    Thermal870Config,
-    ThermalConfig,
-    ThermalCostGeneration,
-)
+from antarest.study.storage.rawstudy.model.filesystem.factory import FileStudy
 from tests.storage.business.assets import ASSETS_DIR
 
 
@@ -94,38 +100,47 @@ def test_parse_bindings(study_path: Path) -> None:
     content = """\
     [bindA]
     id = bindA
+    name = bindA
+    filter-synthesis = hourly
+    area_1%area_2 = 4
+    area_3.thermal_1 = 5.3%2
     
     [bindB]
     id = bindB
+    name = bindB
     type = weekly
     group = My Group
+    filter-year-by-year = weekly, annual
     """
     (study_path / "input/bindingconstraints/bindingconstraints.ini").write_text(textwrap.dedent(content))
+    study_path.joinpath("study.antares").write_text("[antares] \n version = 870")
 
-    config = FileStudyTreeConfig(
-        study_path=study_path,
-        path=study_path,
-        version=0,
-        bindings=[
-            BindingConstraintDTO(
-                id="bindA",
-                areas=set(),
-                clusters=set(),
-                time_step=BindingConstraintFrequency.HOURLY,
-            ),
-            BindingConstraintDTO(
-                id="bindB",
-                areas=set(),
-                clusters=set(),
-                time_step=BindingConstraintFrequency.WEEKLY,
-                group="My Group",
-            ),
-        ],
-        study_id="id",
-        output_path=study_path / "output",
-    )
-
-    assert build(study_path, "id") == config
+    actual = _parse_bindings(study_path)
+    expected = [
+        BindingConstraint(
+            **{
+                "name": "bindA",
+                "time_step": BindingConstraintFrequency.HOURLY,
+                "group": "default",
+                "filter_synthesis": [FilterOption.HOURLY],
+                "filter_year_by_year": [],
+                "terms": [
+                    ConstraintTerm(weight=4.0, offset=None, data=LinkTerm(area1="area_1", area2="area_2")),
+                    ConstraintTerm(weight=5.3, offset=2, data=ClusterTerm(area="area_3", cluster="thermal_1")),
+                ],
+            }
+        ),
+        BindingConstraint(
+            **{
+                "name": "bindB",
+                "time_step": BindingConstraintFrequency.WEEKLY,
+                "group": "My Group",
+                "filter_synthesis": [],
+                "filter_year_by_year": [FilterOption.WEEKLY, FilterOption.ANNUAL],
+            }
+        ),
+    ]
+    assert actual == expected
 
 
 def test_parse_outputs(study_path: Path) -> None:
@@ -160,7 +175,7 @@ def test_parse_outputs(study_path: Path) -> None:
             "20201220-1456eco-hello": Simulation(
                 name="hello",
                 date="20201220-1456",
-                mode="economy",
+                mode=Mode.ECONOMY,
                 nbyears=1,
                 synthesis=True,
                 by_year=True,
@@ -182,7 +197,7 @@ def test_parse_outputs(study_path: Path) -> None:
                 "20230127-1550eco": Simulation(
                     name="",
                     date="20230127-1550",
-                    mode="economy",
+                    mode=Mode.ECONOMY,
                     nbyears=1,
                     synthesis=True,
                     by_year=False,
@@ -194,7 +209,7 @@ def test_parse_outputs(study_path: Path) -> None:
                 "20230203-1530eco": Simulation(
                     name="",
                     date="20230203-1530",
-                    mode="economy",
+                    mode=Mode.ECONOMY,
                     nbyears=1,
                     synthesis=False,
                     by_year=False,
@@ -206,7 +221,7 @@ def test_parse_outputs(study_path: Path) -> None:
                 "20230203-1531eco": Simulation(
                     name="",
                     date="20230203-1531",
-                    mode="economy",
+                    mode=Mode.ECONOMY,
                     nbyears=1,
                     synthesis=False,
                     by_year=False,
@@ -218,7 +233,7 @@ def test_parse_outputs(study_path: Path) -> None:
                 "20230203-1600eco": Simulation(
                     name="",
                     date="20230203-1600",
-                    mode="economy",
+                    mode=Mode.ECONOMY,
                     nbyears=1,
                     synthesis=True,
                     by_year=False,
@@ -366,9 +381,9 @@ def test_parse_thermal(study_path: Path) -> None:
     ini_path.write_text(THERMAL_LIST_INI)
     actual = _parse_thermal(study_path, "fr")
     expected = [
-        ThermalConfig(id="t1", name="t1", enabled=True),
-        ThermalConfig(id="t2", name="UPPER2", enabled=False),
-        ThermalConfig(id="UPPER3", name="UPPER3", enabled=True, nominal_capacity=456.5),
+        ThermalCluster(name="t1", enabled=True),
+        ThermalCluster(name="UPPER2", enabled=False),
+        ThermalCluster(name="UPPER3", enabled=True, nominal_capacity=456.5),
     ]
     assert actual == expected
 
@@ -395,27 +410,85 @@ def test_parse_thermal_860(study_path: Path, version, caplog) -> None:
         actual = _parse_thermal(study_path, "fr")
     if version == 860:
         expected = [
-            Thermal860Config(id="t1", name="t1"),
-            Thermal860Config(id="t2", name="t2", co2=156, nh3=456),
+            ThermalCluster(
+                name="t1",
+                co2=0,
+                nh3=0,
+                so2=0,
+                nox=0,
+                pm2_5=0,
+                pm5=0,
+                pm10=0,
+                nmvoc=0,
+                op1=0,
+                op2=0,
+                op3=0,
+                op4=0,
+                op5=0,
+            ),
+            ThermalCluster(
+                name="t2",
+                co2=156,
+                nh3=456,
+                so2=0,
+                nox=0,
+                pm2_5=0,
+                pm5=0,
+                pm10=0,
+                nmvoc=0,
+                op1=0,
+                op2=0,
+                op3=0,
+                op4=0,
+                op5=0,
+            ),
         ]
         assert not caplog.text
     elif version == 870:
         expected = [
-            Thermal870Config(id="t1", name="t1"),
-            Thermal870Config(
-                id="t2",
+            ThermalCluster(
+                name="t1",
+                co2=0,
+                nh3=0,
+                so2=0,
+                nox=0,
+                pm2_5=0,
+                pm5=0,
+                pm10=0,
+                nmvoc=0,
+                op1=0,
+                op2=0,
+                op3=0,
+                op4=0,
+                op5=0,
+                cost_generation=ThermalCostGeneration.SET_MANUALLY,
+                efficiency=100,
+                variable_o_m_cost=0,
+            ),
+            ThermalCluster(
                 name="t2",
                 co2=156,
                 nh3=456,
+                so2=0,
+                nox=0,
+                pm2_5=0,
+                pm5=0,
+                pm10=0,
+                nmvoc=0,
+                op1=0,
+                op2=0,
+                op3=0,
+                op4=0,
+                op5=0,
                 cost_generation=ThermalCostGeneration.SET_MANUALLY,
-                efficiency=100.0,
+                efficiency=100,
                 variable_o_m_cost=0,
             ),
         ]
         assert not caplog.text
     else:
-        expected = [ThermalConfig(id="t1", name="t1")]
-        assert "Extra inputs are not permitted" in caplog.text
+        expected = [ThermalCluster(name="t1")]
+        assert "Field nh3 is not a valid field for study version 8.5" in caplog.text
     assert actual == expected
 
 
@@ -453,9 +526,9 @@ def test_parse_renewables(study_path: Path) -> None:
     ini_path.write_text(REWABLES_LIST_INI)
     actual = _parse_renewables(study_path, "fr")
     expected = [
-        RenewableConfig(id="t1", name="t1", enabled=True),
-        RenewableConfig(id="t2", name="UPPER2", enabled=False),
-        RenewableConfig(id="UPPER3", name="UPPER3", enabled=True, nominal_capacity=456.5),
+        RenewableCluster(name="t1", enabled=True),
+        RenewableCluster(name="UPPER2", enabled=False),
+        RenewableCluster(name="UPPER3", enabled=True, nominal_capacity=456.5),
     ]
     assert actual == expected
 
@@ -533,5 +606,36 @@ def test_parse_links(study_path: Path) -> None:
     """
     (study_path / "input/links/fr/properties.ini").write_text(content)
 
-    link = Link(filters_synthesis=["annual"], filters_year=["hourly"])
+    link = LinkConfig(filters_synthesis=["annual"], filters_year=["hourly"])
     assert _parse_links_filtering(study_path, "fr") == {"l1": link}
+
+
+def test_parse_expansion_output(empty_study_880: FileStudy) -> None:
+    """
+    Ensures we're able to parse an `expansion` simulation
+    """
+    study_path = empty_study_880.config.path
+    output_path = study_path / "output"
+    output_id = "20250521-1009exp-fake_output"
+    expansion_output = output_path / output_id
+    expansion_output.mkdir(parents=True)
+    for file in ["file_1.txt", "file_2.txt", "file_3.mps", "checkIntegrity.txt"]:
+        (expansion_output / file).touch()
+
+    ini_path = expansion_output / "about-the-study" / "parameters.ini"
+    ini_path.parent.mkdir(parents=True)
+
+    write_ini_file(ini_path, {"general": {"nbyears": "1", "year-by-year": False}, "output": {"synthesis": True}})
+    simulation = parse_simulation(expansion_output, output_id)
+
+    empty_study_880.config.outputs = {output_id: simulation}
+    tree = empty_study_880.tree.build()
+    output_tree = tree["output"].get()
+    assert len(output_tree.keys()) == 1
+    # Asserts every .txt file is scanned but not the .mps one
+    assert "file_1" in output_tree[output_id]
+    assert "file_2" in output_tree[output_id]
+    assert "checkIntegrity" in output_tree[output_id]
+    assert "file_3" not in output_tree[output_id]
+    # Asserts the `economy` folder is scanned
+    assert "economy" in output_tree[output_id]

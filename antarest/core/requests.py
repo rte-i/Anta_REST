@@ -10,17 +10,12 @@
 #
 # This file is part of the Antares project.
 
-import typing as t
 from collections import OrderedDict
-from dataclasses import dataclass
-from typing import Any, Generator, Tuple
+from typing import Any, Generator, Mapping, MutableMapping, Tuple
 
 from fastapi import HTTPException
-from markupsafe import escape
 from ratelimit import Rule  # type: ignore
 from typing_extensions import override
-
-from antarest.core.jwt import JWTUser
 
 RATE_LIMIT_CONFIG = {
     r"^/v1/launcher/run": [
@@ -32,19 +27,19 @@ RATE_LIMIT_CONFIG = {
 }
 
 
-class CaseInsensitiveDict(t.MutableMapping[str, t.Any]):  # copy of the requests class to avoid importing the package
+class CaseInsensitiveDict(MutableMapping[str, Any]):  # copy of the requests class to avoid importing the package
     def __init__(self, data=None, **kwargs) -> None:  # type: ignore
-        self._store: OrderedDict[str, t.Any] = OrderedDict()
+        self._store: OrderedDict[str, Any] = OrderedDict()
         if data is None:
             data = {}
         self.update(data, **kwargs)
 
     @override
-    def __setitem__(self, key: str, value: t.Any) -> None:
+    def __setitem__(self, key: str, value: Any) -> None:
         self._store[key.lower()] = (key, value)
 
     @override
-    def __getitem__(self, key: str) -> t.Any:
+    def __getitem__(self, key: str) -> Any:
         return self._store[key.lower()][1]
 
     @override
@@ -52,7 +47,7 @@ class CaseInsensitiveDict(t.MutableMapping[str, t.Any]):  # copy of the requests
         del self._store[key.lower()]
 
     @override
-    def __iter__(self) -> t.Any:
+    def __iter__(self) -> Any:
         return (casedkey for casedkey, mappedvalue in self._store.values())
 
     @override
@@ -63,8 +58,8 @@ class CaseInsensitiveDict(t.MutableMapping[str, t.Any]):  # copy of the requests
         return ((lowerkey, keyval[1]) for (lowerkey, keyval) in self._store.items())
 
     @override
-    def __eq__(self, other: t.Any) -> bool:
-        if isinstance(other, t.Mapping):
+    def __eq__(self, other: Any) -> bool:
+        if isinstance(other, Mapping):
             other = CaseInsensitiveDict(other)
         else:
             return NotImplemented
@@ -76,18 +71,6 @@ class CaseInsensitiveDict(t.MutableMapping[str, t.Any]):  # copy of the requests
     @override
     def __repr__(self) -> str:
         return str(dict(self.items()))
-
-
-@dataclass
-class RequestParameters:
-    """
-    DTO object to handle data inside request to send to service
-    """
-
-    user: t.Optional[JWTUser] = None
-
-    def get_user_id(self) -> str:
-        return str(escape(str(self.user.id))) if self.user else "Unknown"
 
 
 class UserHasNotPermissionError(HTTPException):

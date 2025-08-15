@@ -12,35 +12,33 @@
  * This file is part of the Antares project.
  */
 
-import Box from "@mui/material/Box";
 import AddCircleOutlineIcon from "@mui/icons-material/AddCircleOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { Button, Skeleton } from "@mui/material";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import { Box, Button, Skeleton } from "@mui/material";
 import {
   MaterialReactTable,
   MRT_ToggleFiltersButton,
   MRT_ToggleGlobalFilterButton,
   useMaterialReactTable,
-  type MRT_RowSelectionState,
   type MRT_ColumnDef,
+  type MRT_RowSelectionState,
 } from "material-react-table";
-import { useTranslation } from "react-i18next";
-import { useEffect, useMemo, useRef, useState } from "react";
-import CreateDialog from "./CreateDialog";
-import ConfirmationDialog from "../dialogs/ConfirmationDialog";
-import { generateUniqueValue, getTableOptionsForAlign } from "./utils";
-import DuplicateDialog from "./DuplicateDialog";
-import { translateWithColon } from "../../../utils/i18nUtils";
-import useUpdatedRef from "../../../hooks/useUpdatedRef";
-import * as R from "ramda";
 import * as RA from "ramda-adjunct";
-import type { PromiseAny } from "../../../utils/tsUtils";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import useEnqueueErrorSnackbar from "../../../hooks/useEnqueueErrorSnackbar";
-import { toError } from "../../../utils/fnUtils";
 import useOperationInProgressCount from "../../../hooks/useOperationInProgressCount";
+import useUpdatedRef from "../../../hooks/useUpdatedRef";
+import { toError } from "../../../utils/fnUtils";
+import { appendColon } from "../../../utils/i18nUtils";
+import type { PromiseAny } from "../../../utils/tsUtils";
+import ConfirmationDialog from "../dialogs/ConfirmationDialog";
+import CreateDialog from "./CreateDialog";
+import DuplicateDialog from "./DuplicateDialog";
 import type { TRow } from "./types";
+import { generateUniqueValue, getTableOptionsForAlign } from "./utils";
 
 export interface GroupedDataTableProps<
   TGroups extends string[],
@@ -50,6 +48,7 @@ export interface GroupedDataTableProps<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   columns: Array<MRT_ColumnDef<TData, any>>;
   groups: TGroups;
+  allowNewGroups?: boolean;
   onCreate?: (values: TRow<TGroups[number]>) => Promise<TData>;
   onDuplicate?: (row: TData, newName: string) => Promise<TData>;
   onDelete?: (rows: TData[]) => PromiseAny | void;
@@ -70,6 +69,7 @@ function GroupedDataTable<TGroups extends string[], TData extends TRow<TGroups[n
   data,
   columns,
   groups,
+  allowNewGroups = false,
   onCreate,
   onDuplicate,
   onDelete,
@@ -84,7 +84,7 @@ function GroupedDataTable<TGroups extends string[], TData extends TRow<TGroups[n
   const [tableData, setTableData] = useState(data);
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
   const enqueueErrorSnackbar = useEnqueueErrorSnackbar();
-  // Allow to use the last version of `onNameClick` in `tableColumns`
+  // Allow to use the last root of `onNameClick` in `tableColumns`
   const callbacksRef = useUpdatedRef({ onNameClick });
   const pendingRows = useRef<Array<TRow<TGroups[number]>>>([]);
   const { createOps, deleteOps, totalOps } = useOperationInProgressCount();
@@ -105,7 +105,7 @@ function GroupedDataTable<TGroups extends string[], TData extends TRow<TGroups[n
         size: 50,
         filterVariant: "autocomplete",
         filterSelectOptions: groups,
-        footer: translateWithColon("global.total"),
+        footer: appendColon(t("global.total")),
         ...getTableOptionsForAlign("left"),
       },
       {
@@ -208,14 +208,14 @@ function GroupedDataTable<TGroups extends string[], TData extends TRow<TGroups[n
         sx: { cursor: isPending ? "wait" : "pointer" },
       };
     },
+    onRowSelectionChange: setRowSelection,
     // Toolbars
     renderTopToolbarCustomActions: ({ table }) => (
-      <Box sx={{ display: "flex", gap: 1 }}>
+      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
         {onCreate && (
           <Button
             startIcon={<AddCircleOutlineIcon />}
             variant="contained"
-            size="small"
             onClick={() => setOpenDialog("add")}
           >
             {t("button.add")}
@@ -225,7 +225,6 @@ function GroupedDataTable<TGroups extends string[], TData extends TRow<TGroups[n
           <Button
             startIcon={<ContentCopyIcon />}
             variant="outlined"
-            size="small"
             onClick={() => setOpenDialog("duplicate")}
             disabled={table.getSelectedRowModel().rows.length !== 1}
           >
@@ -237,7 +236,6 @@ function GroupedDataTable<TGroups extends string[], TData extends TRow<TGroups[n
             startIcon={<DeleteOutlineIcon />}
             color="error"
             variant="outlined"
-            size="small"
             onClick={() => setOpenDialog("delete")}
             disabled={table.getSelectedRowModel().rows.length === 0}
           >
@@ -252,14 +250,25 @@ function GroupedDataTable<TGroups extends string[], TData extends TRow<TGroups[n
         <MRT_ToggleFiltersButton table={table} />
       </>
     ),
-    onRowSelectionChange: setRowSelection,
+    positionToolbarDropZone: "none",
+    muiSearchTextFieldProps: { size: "extra-small" },
+    muiTopToolbarProps: {
+      sx: {
+        minHeight: "auto",
+        overflowX: "auto",
+        "> .MuiBox-root": {
+          alignItems: "center",
+          p: 0,
+          pb: 1,
+          "> .MuiBox-root": {
+            flexWrap: "nowrap", // Prevent the search field to be wrapped
+          },
+        },
+      },
+    },
     // Styles
     muiTablePaperProps: { sx: { display: "flex", flexDirection: "column" } }, // Allow to have scroll
-    ...R.mergeDeepRight(getTableOptionsForAlign("right"), {
-      muiTableBodyCellProps: {
-        sx: { borderBottom: "1px solid rgba(224, 224, 224, 0.3)" },
-      },
-    }),
+    ...getTableOptionsForAlign("right"),
   });
 
   const selectedRows = table.getSelectedRowModel().rows.map((row) => row.original);
@@ -388,6 +397,7 @@ function GroupedDataTable<TGroups extends string[], TData extends TRow<TGroups[n
           open
           onClose={closeDialog}
           groups={groups}
+          allowNewGroups={allowNewGroups}
           existingNames={existingNames}
           onSubmit={handleCreate}
         />

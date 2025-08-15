@@ -44,6 +44,7 @@ const fieldLabelsByGroup: Record<
     rowBal: "ROW BAL.",
     spilEnrg: "SPIL. ENRG",
     unspEnrg: "UNSP. ENRG",
+    npcapHours: "NPCAP HOURS",
   },
   generationHydro: {
     hCost: "H. COST",
@@ -102,6 +103,7 @@ const fieldLabelsByGroup: Record<
     stsInjByPlant: "STS INJ BY PLANT",
     stsLvlByPlant: "STS LVL BY PLANT",
     stsWithdrawalByPlant: "STS WITHDRAWAL BY PLANT",
+    stsByGroup: "STS BY GROUP",
   },
   generationThermals: {
     avlDtg: "AVL DTG",

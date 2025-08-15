@@ -16,10 +16,8 @@ from unittest.mock import Mock
 
 import pytest
 
-from antarest.matrixstore.service import ISimpleMatrixService
-from antarest.matrixstore.uri_resolver_service import UriResolverService
+from antarest.matrixstore.matrix_uri_mapper import MatrixUriMapper
 from antarest.study.storage.rawstudy.model.filesystem.config.model import Area, FileStudyTreeConfig
-from antarest.study.storage.rawstudy.model.filesystem.context import ContextServer
 from antarest.study.storage.rawstudy.model.filesystem.matrix.input_series_matrix import InputSeriesMatrix
 from antarest.study.storage.rawstudy.model.filesystem.matrix.matrix import MatrixFrequency
 from antarest.study.storage.rawstudy.model.filesystem.root.input.hydro.common.capacity import capacity
@@ -60,9 +58,8 @@ class TestInputHydroCommonCapacity:
         version: str,
         expected: dict,
     ):
-        matrix = Mock(spec=ISimpleMatrixService)
-        resolver = Mock(spec=UriResolverService)
-        context = ContextServer(matrix=matrix, resolver=resolver)
+        resolver = Mock(spec=MatrixUriMapper)
+        context = resolver
         study_id = str(uuid.uuid4())
         config = FileStudyTreeConfig(
             study_path=Path("path/to/study"),
@@ -83,20 +80,19 @@ class TestInputHydroCommonCapacity:
         )
 
         node = capacity.InputHydroCommonCapacity(
-            context=context,
+            matrix_mapper=context,
             config=config,
             children_glob_exceptions=None,
         )
         actual = node.build()
 
         # check the result
-        value: InputSeriesMatrix
-        actual_obj = {
-            key: {
+        actual_obj = {}
+        for key, value in actual.items():
+            assert isinstance(value, InputSeriesMatrix)
+            actual_obj[key] = {
                 "default_empty": [[]],
                 "freq": value.freq,
                 "nb_columns": value.nb_columns,
             }
-            for key, value in actual.items()
-        }
         assert actual_obj == expected

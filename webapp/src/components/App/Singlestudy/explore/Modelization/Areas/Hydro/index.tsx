@@ -14,19 +14,19 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useOutletContext } from "react-router";
-import type { StudyMetadata } from "../../../../../../../common/types";
-import TabWrapper from "../../../TabWrapper";
 import useAppSelector from "../../../../../../../redux/hooks/useAppSelector";
 import { getCurrentAreaId } from "../../../../../../../redux/selectors";
 import {
   getAdvancedParamsFormFields,
   type AdvancedParamsFormFields,
 } from "../../../Configuration/AdvancedParameters/utils";
+import type { StudyMetadata } from "../../../../../../../types/types";
+import TabWrapper from "../../../TabWrapper";
 
 function Hydro() {
   const { study } = useOutletContext<{ study: StudyMetadata }>();
   const areaId = useAppSelector(getCurrentAreaId);
-  const studyVersion = parseInt(study.version, 10);
+  const studyVersion = Number(study.version);
 
   // State to store whether to show reservoir levels ts tab(s) or not
   const [showResLevelsTs, setShowResLevelsTs] = useState<boolean>(true);
@@ -95,7 +95,7 @@ function Hydro() {
   // JSX
   ////////////////////////////////////////////////////////////////
 
-  return <TabWrapper study={study} tabList={tabList} tabStyle="withoutBorder" />;
+  return <TabWrapper study={study} tabList={tabList} />;
 }
 
 export default Hydro;

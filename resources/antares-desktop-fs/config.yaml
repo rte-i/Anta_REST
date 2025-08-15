@@ -1,5 +1,7 @@
 # Documentation about this file can be found in this file: `docs/install/1-CONFIG.md`
 
+desktop_mode: true
+
 security:
   disabled: true
   jwt:
@@ -15,13 +17,16 @@ storage:
   workspaces:
     default:
       path: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/internal_studies/
-    studies:
-      path: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/studies/
 
 launcher:
-  local:
-    binaries:
-      920: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/solver/920-beta/antares-9.2-solver-beta
+  launchers:
+    - id: local
+      name: my_local
+      type: local
+      binaries:
+        920: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/solver/920-beta/antares-9.2-solver-beta
+      local_workspace: ./local_workspace
+
 
 #  slurm:
 #    local_workspace: /path/to/slurm_workspace  # Path to the local SLURM workspace
@@ -53,8 +58,6 @@ api_prefix: "/api"
 
 server:
   worker_threadpool_size: 12
-  services:
-    - watcher
 
 logging:
   logfile: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/logs/antarest.log

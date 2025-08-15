@@ -12,24 +12,19 @@
  * This file is part of the Antares project.
  */
 
-import moment from "moment";
-import debug from "debug";
 import i18n, { type TFunction } from "i18next";
+import moment from "moment";
 import * as R from "ramda";
 import {
   RoleType,
-  type StudyMetadataDTO,
-  type StudyMetadata,
-  type JWTGroup,
-  type UserInfo,
-  type VariantTreeDTO,
-  type VariantTree,
   type GenericInfo,
-} from "../../common/types";
-import { getMaintenanceMode, getMessageInfo } from "../api/maintenance";
-import { getConfig } from "../config";
-
-const logInfo = debug("antares:utils");
+  type JWTGroup,
+  type StudyMetadata,
+  type StudyMetadataDTO,
+  type UserInfo,
+  type VariantTree,
+  type VariantTreeDTO,
+} from "../../types/types";
 
 export const convertStudyDtoToMetadata = (
   sid: string,
@@ -49,9 +44,6 @@ export const convertStudyDtoToMetadata = (
   archived: metadata.archived,
   folder: metadata.folder,
   horizon: metadata.horizon,
-  scenario: metadata.scenario,
-  status: metadata.status,
-  doc: metadata.doc,
   tags: metadata.tags,
 });
 
@@ -152,8 +144,8 @@ export const exportText = (fileData: string, filename: string): void => {
 };
 
 /**
- * Gets the appropriate version name to display.
- * The patch version is not displayed because it is not relevant.
+ * Gets the appropriate root name to display.
+ * The patch root is not displayed because it is not relevant.
  * Its value is always 0 from the server.
  *
  * Ex: '820' -> '8.2'
@@ -168,27 +160,6 @@ export const convertVersions = (versions: string[]): GenericInfo[] =>
     id: version,
     name: displayVersionName(version),
   }));
-
-export const getMaintenanceStatus = async (): Promise<boolean> => {
-  const { maintenanceMode } = getConfig();
-  try {
-    const tmpMaintenance = await getMaintenanceMode();
-    return tmpMaintenance;
-  } catch (e) {
-    logInfo("Failed to retrieve maintenance status", e);
-  }
-  return maintenanceMode;
-};
-
-export const getInitMessageInfo = async (): Promise<string> => {
-  try {
-    const tmpMessage = await getMessageInfo();
-    return tmpMessage;
-  } catch (e) {
-    logInfo("Failed to retrieve message info", e);
-  }
-  return "";
-};
 
 export const isStringEmpty = (data: string): boolean => data.replace(/\s/g, "") === "";
 
@@ -229,13 +200,7 @@ export const createListFromTree = (tree: VariantTree): GenericInfo[] => {
   return res;
 };
 
-export const sortByProp = <T extends object>(getProp: (obj: T) => string, list: T[]): T[] => {
-  return R.sortBy(R.compose(R.toLower, getProp), list);
-};
-
-export const sortByName = <T extends { name: string }>(list: T[]): T[] => {
-  return sortByProp((v) => v.name, list);
-};
+export const sortByName = R.sortBy(R.compose(R.toLower, R.prop("name")));
 
 /**
  * Converts a name string to an ID format.

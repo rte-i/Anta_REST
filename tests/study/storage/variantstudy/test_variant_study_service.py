@@ -21,22 +21,19 @@ from antares.study.version import StudyVersion
 
 from antarest.core.jwt import DEFAULT_ADMIN_USER, JWTUser
 from antarest.core.model import PublicMode
-from antarest.core.requests import RequestParameters, UserHasNotPermissionError
+from antarest.core.requests import UserHasNotPermissionError
 from antarest.core.utils.fastapi_sqlalchemy import db
 from antarest.core.utils.utils import sanitize_uuid
 from antarest.login.model import ADMIN_ID, ADMIN_NAME, Group, User
 from antarest.login.utils import current_user_context
 from antarest.matrixstore.service import SimpleMatrixService
-from antarest.study.business.utils import execute_or_add_commands
 from antarest.study.model import RawStudy, StudyAdditionalData
-from antarest.study.storage.patch_service import PatchService
+from antarest.study.service import StudyService
 from antarest.study.storage.rawstudy.model.filesystem.config.st_storage import (
-    STStorageConfig,
     STStorageGroup,
     STStorageProperties,
 )
 from antarest.study.storage.rawstudy.raw_study_service import RawStudyService
-from antarest.study.storage.storage_service import StudyStorageService
 from antarest.study.storage.variantstudy.business.matrix_constants_generator import GeneratorMatrixConstants
 from antarest.study.storage.variantstudy.model.command.create_area import CreateArea
 from antarest.study.storage.variantstudy.model.command.create_st_storage import CreateSTStorage
@@ -131,8 +128,7 @@ class TestVariantStudyService:
         raw_study_service: RawStudyService,
         simple_matrix_service: SimpleMatrixService,
         generator_matrix_constants: GeneratorMatrixConstants,
-        patch_service: PatchService,
-        study_storage_service: StudyStorageService,
+        study_service: StudyService,
         # pytest parameters
         denormalize: bool,
         from_scratch: bool,
@@ -175,22 +171,12 @@ class TestVariantStudyService:
         raw_study_service.create(raw_study)
         study_version = StudyVersion.parse(raw_study.version)
 
-        variant_study = variant_study_service.create_variant_study(
-            raw_study.id,
-            "My Variant Study",
-            params=Mock(
-                spec=RequestParameters,
-                user=jwt_user,
-            ),
-        )
-
-        ## Prepare the RAW Study
-        file_study = variant_study_service.get_raw(variant_study)
+        with current_user_context(jwt_user):
+            variant_study = variant_study_service.create_variant_study(raw_study.id, "My Variant Study")
 
         command_context = CommandContext(
             generator_matrix_constants=generator_matrix_constants,
             matrix_service=simple_matrix_service,
-            patch_service=patch_service,
         )
 
         create_area_fr = CreateArea(command_context=command_context, area_name="fr", study_version=study_version)
@@ -219,19 +205,13 @@ class TestVariantStudyService:
         )
 
         with current_user_context(jwt_user):
-            execute_or_add_commands(
+            study_service.get_study_interface(variant_study).add_commands([create_area_fr, create_st_storage])
+            ## Run the "generate" task
+            actual_uui = variant_study_service.generate_task(
                 variant_study,
-                file_study,
-                commands=[create_area_fr, create_st_storage],
-                storage_service=study_storage_service,
+                denormalize=denormalize,
+                from_scratch=from_scratch,
             )
-
-        ## Run the "generate" task
-        actual_uui = variant_study_service.generate_task(
-            variant_study,
-            denormalize=denormalize,
-            from_scratch=from_scratch,
-        )
         assert re.fullmatch(
             r"[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}",
             actual_uui,
@@ -304,6 +284,10 @@ class TestVariantStudyService:
         db.session.add(group)
         db.session.commit()
 
+        regular_jwt_user = Mock(spec=JWTUser, id=regular_user.id, impersonator=regular_user.id)
+        regular_jwt_user.is_site_admin.return_value = False
+        regular_jwt_user.is_admin_token.return_value = False
+
         # Create a raw study (root of the variant)
         raw_study_path = tmp_path / "My RAW Study"
         # noinspection PyArgumentList
@@ -338,27 +322,12 @@ class TestVariantStudyService:
             m.setattr("antarest.study.service.datetime", FakeDatetime)
 
             for index in range(3):
-                variant_list.append(
-                    variant_study_service.create_variant_study(
-                        raw_study.id,
-                        "Variant{}".format(str(index)),
-                        params=Mock(
-                            spec=RequestParameters,
-                            user=DEFAULT_ADMIN_USER,
-                        ),
+                with current_user_context(DEFAULT_ADMIN_USER):
+                    variant_list.append(
+                        variant_study_service.create_variant_study(raw_study.id, "Variant{}".format(str(index)))
                     )
-                )
-
-                # Generate a snapshot for each variant
-                variant_study_service.generate(
-                    sanitize_uuid(variant_list[index].id),
-                    False,
-                    False,
-                    params=Mock(
-                        spec=RequestParameters,
-                        user=Mock(spec=JWTUser, id=regular_user.id, impersonator=regular_user.id),
-                    ),
-                )
+                    # Generate a snapshot for each variant
+                    variant_study_service.generate(sanitize_uuid(variant_list[index].id), False, False)
 
                 variant_study_service.get(variant_list[index])
 
@@ -376,18 +345,8 @@ class TestVariantStudyService:
         # =============================
         # A user without rights cannot clear snapshots
         with pytest.raises(UserHasNotPermissionError):
-            variant_study_service.clear_all_snapshots(
-                datetime.timedelta(1),
-                params=Mock(
-                    spec=RequestParameters,
-                    user=Mock(
-                        spec=JWTUser,
-                        id=regular_user.id,
-                        is_site_admin=Mock(return_value=False),
-                        is_admin_token=Mock(return_value=False),
-                    ),
-                ),
-            )
+            with current_user_context(regular_jwt_user):
+                variant_study_service.clear_all_snapshots(datetime.timedelta(1))
 
         # At this point, variants was not accessed yet
         # Thus snapshot directories must exist still
@@ -404,13 +363,8 @@ class TestVariantStudyService:
         db.session.commit()
 
         # Clear old snapshots
-        task_id = variant_study_service.clear_all_snapshots(
-            datetime.timedelta(hours=5),
-            Mock(
-                spec=RequestParameters,
-                user=DEFAULT_ADMIN_USER,
-            ),
-        )
+        with current_user_context(DEFAULT_ADMIN_USER):
+            task_id = variant_study_service.clear_all_snapshots(datetime.timedelta(hours=5))
         variant_study_service.task_service.await_task(task_id)
 
         # Check if old snapshots was successfully cleared
@@ -421,13 +375,8 @@ class TestVariantStudyService:
         assert nb_snapshot_dir == 1
 
         # Clear most recent snapshots
-        task_id = variant_study_service.clear_all_snapshots(
-            datetime.timedelta(hours=-1),
-            Mock(
-                spec=RequestParameters,
-                user=DEFAULT_ADMIN_USER,
-            ),
-        )
+        with current_user_context(DEFAULT_ADMIN_USER):
+            task_id = variant_study_service.clear_all_snapshots(datetime.timedelta(hours=-1))
         variant_study_service.task_service.await_task(task_id)
 
         # Check if all snapshots were cleared

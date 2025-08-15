@@ -9,20 +9,19 @@
 # SPDX-License-Identifier: MPL-2.0
 #
 # This file is part of the Antares project.
-
 from typing import Any, Dict, List
 
-from antares.study.version import StudyVersion
 from pydantic import field_validator
 from pydantic.types import StrictInt, StrictStr
 
 from antarest.core.exceptions import InvalidFieldForVersionError
 from antarest.study.business.all_optional_meta import all_optional_model
 from antarest.study.business.enum_ignore_case import EnumIgnoreCase
-from antarest.study.business.utils import GENERAL_DATA_PATH, FieldInfo, FormFieldsBaseModel, execute_or_add_commands
-from antarest.study.model import STUDY_VERSION_8_8, Study
-from antarest.study.storage.storage_service import StudyStorageService
+from antarest.study.business.study_interface import StudyInterface
+from antarest.study.business.utils import GENERAL_DATA_PATH, FieldInfo, FormFieldsBaseModel
+from antarest.study.model import STUDY_VERSION_8_8, STUDY_VERSION_9_2
 from antarest.study.storage.variantstudy.model.command.update_config import UpdateConfig
+from antarest.study.storage.variantstudy.model.command_context import CommandContext
 
 
 class InitialReservoirLevel(EnumIgnoreCase):
@@ -48,6 +47,7 @@ class PowerFluctuation(EnumIgnoreCase):
 
 class SheddingPolicy(EnumIgnoreCase):
     SHAVE_PEAKS = "shave peaks"
+    ACCURATE_SHAVE_PEAKS = "accurate shave peaks"
     MINIMIZE_DURATION = "minimize duration"
 
 
@@ -147,6 +147,7 @@ FIELDS_INFO: Dict[str, FieldInfo] = {
     "initial_reservoir_levels": {
         "path": f"{OTHER_PREFERENCES_PATH}/initial-reservoir-levels",
         "default_value": InitialReservoirLevel.COLD_START.value,
+        "end_version": STUDY_VERSION_9_2,
     },
     "power_fluctuations": {
         "path": f"{OTHER_PREFERENCES_PATH}/power-fluctuations",
@@ -237,14 +238,14 @@ FIELDS_INFO: Dict[str, FieldInfo] = {
 
 
 class AdvancedParamsManager:
-    def __init__(self, storage_service: StudyStorageService) -> None:
-        self.storage_service = storage_service
+    def __init__(self, command_context: CommandContext) -> None:
+        self._command_context = command_context
 
-    def get_field_values(self, study: Study) -> AdvancedParamsFormFields:
+    def get_field_values(self, study: StudyInterface) -> AdvancedParamsFormFields:
         """
         Get Advanced parameters values for the webapp form
         """
-        file_study = self.storage_service.get_storage(study).get_raw(study)
+        file_study = study.get_files()
         general_data = file_study.tree.get(GENERAL_DATA_PATH.split("/"))
         advanced_params = general_data.get("advanced parameters", {})
         other_preferences = general_data.get("other preferences", {})
@@ -252,6 +253,12 @@ class AdvancedParamsManager:
         compatibility_data = general_data.get("compatibility", {})
 
         def get_value(field_info: FieldInfo) -> Any:
+            start_version = field_info.get("start_version", 0)
+            end_version = field_info.get("end_version", 10000)
+            is_in_version = study.version >= start_version and file_study.config.version < end_version
+            if not is_in_version:
+                return None
+
             path = field_info["path"]
             target_name = path.split("/")[-1]
             if ADVANCED_PARAMS_PATH in path:
@@ -264,9 +271,9 @@ class AdvancedParamsManager:
                 parent = compatibility_data
             return parent.get(target_name, field_info["default_value"])
 
-        return AdvancedParamsFormFields.construct(**{name: get_value(info) for name, info in FIELDS_INFO.items()})
+        return AdvancedParamsFormFields.model_construct(**{name: get_value(info) for name, info in FIELDS_INFO.items()})
 
-    def set_field_values(self, study: Study, field_values: AdvancedParamsFormFields) -> None:
+    def set_field_values(self, study: StudyInterface, field_values: AdvancedParamsFormFields) -> None:
         """
         Set Advanced parameters values from the webapp form
         """
@@ -280,7 +287,7 @@ class AdvancedParamsManager:
                 if (
                     field_name == "unit_commitment_mode"
                     and value == UnitCommitmentMode.MILP
-                    and StudyVersion.parse(study.version) < STUDY_VERSION_8_8
+                    and study.version < STUDY_VERSION_8_8
                 ):
                     raise InvalidFieldForVersionError("Unit commitment mode `MILP` only exists in v8.8+ studies")
 
@@ -288,11 +295,10 @@ class AdvancedParamsManager:
                     UpdateConfig(
                         target=info["path"],
                         data=value,
-                        command_context=self.storage_service.variant_study_service.command_factory.command_context,
+                        command_context=self._command_context,
                         study_version=study.version,
                     )
                 )
 
         if len(commands) > 0:
-            file_study = self.storage_service.get_storage(study).get_raw(study)
-            execute_or_add_commands(study, file_study, commands, self.storage_service)
+            study.add_commands(commands)

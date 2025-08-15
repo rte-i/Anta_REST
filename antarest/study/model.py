@@ -13,13 +13,23 @@
 import dataclasses
 import enum
 import secrets
-import typing as t
 import uuid
 from datetime import datetime, timedelta
-from pathlib import Path, PurePath
+from pathlib import Path, PurePath, PurePosixPath
+from typing import TYPE_CHECKING, Annotated, Any, Dict, List, Optional, Tuple, TypeAlias, cast
 
+import numpy as np
+import numpy.typing as npt
 from antares.study.version import StudyVersion
-from pydantic import BeforeValidator, ConfigDict, Field, PlainSerializer, computed_field, field_validator
+from pydantic import (
+    BeforeValidator,
+    ConfigDict,
+    Field,
+    PlainSerializer,
+    alias_generators,
+    computed_field,
+    field_validator,
+)
 from sqlalchemy import (  # type: ignore
     Boolean,
     Column,
@@ -30,8 +40,7 @@ from sqlalchemy import (  # type: ignore
     PrimaryKeyConstraint,
     String,
 )
-from sqlalchemy.orm import relationship  # type: ignore
-from sqlalchemy.orm import validates
+from sqlalchemy.orm import relationship, validates  # type: ignore
 from typing_extensions import override
 
 from antarest.core.exceptions import ShouldNotHappenException
@@ -41,16 +50,13 @@ from antarest.core.serde import AntaresBaseModel
 from antarest.login.model import Group, GroupDTO, Identity
 from antarest.study.css4_colors import COLOR_NAMES
 
-if t.TYPE_CHECKING:
+if TYPE_CHECKING:
     # avoid circular import
     from antarest.core.tasks.model import TaskJob
 
 DEFAULT_WORKSPACE_NAME = "default"
 
 NEW_DEFAULT_STUDY_VERSION: StudyVersion = StudyVersion.parse("9.2")
-STUDY_VERSION_6_0 = StudyVersion.parse("6.0")
-STUDY_VERSION_6_1 = StudyVersion.parse("6.1")
-STUDY_VERSION_6_4 = StudyVersion.parse("6.4")
 STUDY_VERSION_6_5 = StudyVersion.parse("6.5")
 STUDY_VERSION_7_0 = StudyVersion.parse("7.0")
 STUDY_VERSION_7_1 = StudyVersion.parse("7.1")
@@ -64,30 +70,28 @@ STUDY_VERSION_8_5 = StudyVersion.parse("8.5")
 STUDY_VERSION_8_6 = StudyVersion.parse("8.6")
 STUDY_VERSION_8_7 = StudyVersion.parse("8.7")
 STUDY_VERSION_8_8 = StudyVersion.parse("8.8")
+STUDY_VERSION_9_0 = StudyVersion.parse("9.0")
 STUDY_VERSION_9_1 = StudyVersion.parse("9.1")
 STUDY_VERSION_9_2 = NEW_DEFAULT_STUDY_VERSION
 
-StudyVersionStr = t.Annotated[StudyVersion, BeforeValidator(StudyVersion.parse), PlainSerializer(str)]
-StudyVersionInt = t.Annotated[StudyVersion, BeforeValidator(StudyVersion.parse), PlainSerializer(int)]
+StudyVersionStr: TypeAlias = Annotated[StudyVersion, BeforeValidator(StudyVersion.parse), PlainSerializer(str)]
+StudyVersionInt: TypeAlias = Annotated[StudyVersion, BeforeValidator(StudyVersion.parse), PlainSerializer(int)]
 
 
-STUDY_REFERENCE_TEMPLATES: t.Mapping[StudyVersion, str] = {
-    STUDY_VERSION_6_0: "empty_study_613.zip",
-    STUDY_VERSION_6_1: "empty_study_613.zip",
-    STUDY_VERSION_6_4: "empty_study_613.zip",
-    STUDY_VERSION_7_0: "empty_study_700.zip",
-    STUDY_VERSION_7_1: "empty_study_710.zip",
-    STUDY_VERSION_7_2: "empty_study_720.zip",
-    STUDY_VERSION_8: "empty_study_803.zip",
-    STUDY_VERSION_8_1: "empty_study_810.zip",
-    STUDY_VERSION_8_2: "empty_study_820.zip",
-    STUDY_VERSION_8_3: "empty_study_830.zip",
-    STUDY_VERSION_8_4: "empty_study_840.zip",
-    STUDY_VERSION_8_5: "empty_study_850.zip",
-    STUDY_VERSION_8_6: "empty_study_860.zip",
-    STUDY_VERSION_8_7: "empty_study_870.zip",
-    STUDY_VERSION_8_8: "empty_study_880.zip",
-    STUDY_VERSION_9_2: "empty_study_920.zip",
+STUDY_REFERENCE_TEMPLATES: set[StudyVersion] = {
+    STUDY_VERSION_7_0,
+    STUDY_VERSION_7_1,
+    STUDY_VERSION_7_2,
+    STUDY_VERSION_8,
+    STUDY_VERSION_8_1,
+    STUDY_VERSION_8_2,
+    STUDY_VERSION_8_3,
+    STUDY_VERSION_8_4,
+    STUDY_VERSION_8_5,
+    STUDY_VERSION_8_6,
+    STUDY_VERSION_8_7,
+    STUDY_VERSION_8_8,
+    STUDY_VERSION_9_2,
 }
 
 
@@ -163,11 +167,11 @@ class Tag(Base):  # type:ignore
     label = Column(String(40), primary_key=True, index=True)
     color: str = Column(String(20), index=True, default=lambda: secrets.choice(COLOR_NAMES))
 
-    studies: t.List["Study"] = relationship("Study", secondary=StudyTag.__table__, back_populates="tags")
+    studies: List["Study"] = relationship("Study", secondary=StudyTag.__table__, back_populates="tags")
 
     @override
     def __str__(self) -> str:  # pragma: no cover
-        return t.cast(str, self.label)
+        return cast(str, self.label)
 
     @override
     def __repr__(self) -> str:  # pragma: no cover
@@ -204,7 +208,7 @@ class StudyAdditionalData(Base):  # type:ignore
     patch = Column(String(), index=True, nullable=True)
 
     @override
-    def __eq__(self, other: t.Any) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if not super().__eq__(other):
             return False
         if not isinstance(other, StudyAdditionalData):
@@ -214,7 +218,30 @@ class StudyAdditionalData(Base):  # type:ignore
 
 class Study(Base):  # type: ignore
     """
-    Standard Study entity
+    Base study entity to save main metadata, common for any type of study (raw, variant, managed or not)
+
+    Attributes:
+        id: The unique identifier of the study in the application. A UUID.
+        name: The name of the study, will be used for display purpose or searching. Note that this is NOT
+              a unique identifier. May contain any type of characters.
+        version: The version of the study, for example "7.0". Currently, any format accepted by StudyVersion.parse i
+                 considered valid: "8.8" or "880" for example.
+        author: The author name. Note that it may be different from the owner, and even not be a user of the application.
+        created_at: The timestamp when the study was created.
+        updated_at: The timestamp when the study was last updated.
+        last_access: The timestamp when the study was last accessed.
+        path: The path to a study directory on the file system. Note that depending on the type of study, this may
+              represent different things. In particular, this is generally speaking not a valid study for the simulator.
+              (for example, variants will generate snapshots in "<path> / snapshot").
+        folder: Where the study is located in the workspace, from the user point of view.
+                Note that generally speaking, this will not correspond to a valid folder on disk, this is only a logical
+                folder presented to the user, not the way we organize data internally.
+        parent_id: The ID of the parent study, if any. Only makes sense for variant studies.
+        public_mode: Defines the actions any user logged in is allowed to take on the study.
+        owner_id: The ID of the owner of the study.
+        archived: Whether the study is archived or not. Most operations are not allowed on archived studies.
+                  The actual implementation of study archival may depend on the type of study. Currently,
+                  only managed raw studies may be archived.
     """
 
     __tablename__ = "study"
@@ -239,7 +266,7 @@ class Study(Base):  # type: ignore
     owner_id = Column(Integer, ForeignKey(Identity.id), nullable=True, index=True)
     archived = Column(Boolean(), default=False, index=True)
 
-    tags: t.List[Tag] = relationship(Tag, secondary=StudyTag.__table__, back_populates="studies")
+    tags: List[Tag] = relationship(Tag, secondary=StudyTag.__table__, back_populates="studies")
     owner = relationship(Identity, uselist=False)
     groups = relationship(Group, secondary=StudyGroup.__table__, cascade="")
     additional_data = relationship(
@@ -250,7 +277,7 @@ class Study(Base):  # type: ignore
 
     # Define a one-to-many relationship between `Study` and `TaskJob`.
     # If the Study is deleted, all attached TaskJob must be deleted in cascade.
-    jobs: t.List["TaskJob"] = relationship("TaskJob", back_populates="study", cascade="all, delete, delete-orphan")
+    jobs: List["TaskJob"] = relationship("TaskJob", back_populates="study", cascade="all, delete, delete-orphan")
 
     __mapper_args__ = {"polymorphic_identity": "study", "polymorphic_on": type}
 
@@ -270,7 +297,7 @@ class Study(Base):  # type: ignore
         )
 
     @override
-    def __eq__(self, other: t.Any) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Study):
             return False
         return bool(
@@ -287,18 +314,18 @@ class Study(Base):  # type: ignore
             and other.archived == self.archived
         )
 
-    def to_json_summary(self) -> t.Any:
+    def to_json_summary(self) -> Any:
         return {"id": self.id, "name": self.name}
 
     @validates("folder")  # type: ignore
-    def validate_folder(self, key: str, folder: t.Optional[str]) -> t.Optional[str]:
+    def validate_folder(self, key: str, folder: Optional[str]) -> Optional[str]:
         """
         We want to store the path in posix format in the database, even on windows.
         """
         return normalize_path(folder)
 
 
-def normalize_path(path: t.Optional[str]) -> t.Optional[str]:
+def normalize_path(path: Optional[str]) -> Optional[str]:
     """
     Turns any path including a windows path (with \ separator) to a posix path (with / separator).
     """
@@ -311,17 +338,25 @@ def normalize_path(path: t.Optional[str]) -> t.Optional[str]:
 class RawStudy(Study):
     """
     Study filesystem based entity implementation.
+
+    Attributes:
+        content_status: A validity status of this study content.
+        workspace: The workspace this study belongs to. Note that the workspace in particular defines
+                   if the study is "managed" (if it belongs to the "default" workspace) or not.
+        missing: A timestamp indicating when the study has been identified as missing on disk, typically by
+                 a scan of the filesystem. When a study is missing, the deletion does not happen immediately,
+                 in case there was a disk-mounting issue.
     """
 
     __tablename__ = "rawstudy"
 
-    id = Column(
+    id: str = Column(
         String(36),
         ForeignKey("study.id", ondelete="CASCADE"),
         primary_key=True,
     )
-    content_status = Column(Enum(StudyContentStatus))
-    workspace = Column(String(255), default=DEFAULT_WORKSPACE_NAME, nullable=False, index=True)
+    content_status: StudyContentStatus = Column(Enum(StudyContentStatus))
+    workspace: str = Column(String(255), default=DEFAULT_WORKSPACE_NAME, nullable=False, index=True)
     missing = Column(DateTime, nullable=True, index=True)
 
     __mapper_args__ = {
@@ -329,7 +364,7 @@ class RawStudy(Study):
     }
 
     @override
-    def __eq__(self, other: t.Any) -> bool:
+    def __eq__(self, other: Any) -> bool:
         if not super().__eq__(other):
             return False
         if not isinstance(other, RawStudy):
@@ -341,6 +376,12 @@ class RawStudy(Study):
             and other.missing == self.missing
         )
 
+    @override
+    def __repr__(self) -> str:
+        return (
+            f'RawStudy(id="{self.id}", workspace="{self.workspace}", folder="{self.folder}", missing="{self.missing}")'
+        )
+
 
 @dataclasses.dataclass
 class StudyFolder:
@@ -350,26 +391,26 @@ class StudyFolder:
 
     path: Path
     workspace: str
-    groups: t.List[Group]
+    groups: List[Group]
 
 
-class NonStudyFolderDTO(AntaresBaseModel):
+class FolderDTO(AntaresBaseModel):
     """
     DTO used by the explorer to list directories that aren't studies directory, this will be usefull for the front
     so the user can navigate in the hierarchy
     """
 
-    path: Path
+    path: PurePosixPath
     workspace: str
     name: str
-    has_children: bool = Field(
-        alias="hasChildren",
-    )  # true when has at least one non-study-folder children
-
-    model_config = ConfigDict(populate_by_name=True)
+    has_children: bool  # true when has at least one non-study-folder children
+    is_study_folder: bool = Field(
+        default=False,
+    )  # true when this folder is a study folder, used to display the icon in the front
+    model_config = ConfigDict(populate_by_name=True, alias_generator=alias_generators.to_camel)
 
     @computed_field(alias="parentPath")
-    def parent_path(self) -> Path:
+    def parent_path(self) -> PurePosixPath:
         """
         This computed field is convenient for the front.
 
@@ -377,9 +418,16 @@ class NonStudyFolderDTO(AntaresBaseModel):
 
         Returns: the parent path of the current directory. Starting with the workspace as a root directory (we want /workspace/folder1/sub... and not workspace/folder1/fsub... ).
         """
-        workspace_path = Path(f"/{self.workspace}")
+        workspace_path = PurePosixPath(f"/{self.workspace}")
         full_path = workspace_path.joinpath(self.path)
         return full_path.parent
+
+    @field_validator("path", mode="before")
+    def to_posix(cls, path: Path) -> PurePosixPath:
+        """
+        Always convert path to posix path.
+        """
+        return PurePosixPath(path)
 
 
 class WorkspaceMetadata(AntaresBaseModel):
@@ -391,41 +439,19 @@ class WorkspaceMetadata(AntaresBaseModel):
 
 
 class PatchStudy(AntaresBaseModel):
-    scenario: t.Optional[str] = None
-    doc: t.Optional[str] = None
-    status: t.Optional[str] = None
-    comments: t.Optional[str] = None
-    tags: t.List[str] = []
+    scenario: Optional[str] = None
+    doc: Optional[str] = None
+    status: Optional[str] = None
+    comments: Optional[str] = None
+    tags: List[str] = []
 
 
-class PatchArea(AntaresBaseModel):
-    country: t.Optional[str] = None
-    tags: t.List[str] = []
-
-
-class PatchCluster(AntaresBaseModel):
-    type: t.Optional[str] = None
-    code_oi: t.Optional[str] = None
-
-    class Config:
-        @classmethod
-        def alias_generator(cls, string: str) -> str:
-            return "-".join(string.split("_"))
-
-
-class PatchOutputs(AntaresBaseModel):
-    reference: t.Optional[str] = None
-
-
-class Patch(AntaresBaseModel):
-    study: t.Optional[PatchStudy] = None
-    areas: t.Optional[t.Dict[str, PatchArea]] = None
-    thermal_clusters: t.Optional[t.Dict[str, PatchCluster]] = None
-    outputs: t.Optional[PatchOutputs] = None
+class Patch(AntaresBaseModel, extra="allow"):
+    study: Optional[PatchStudy] = None
 
 
 class OwnerInfo(AntaresBaseModel):
-    id: t.Optional[int] = None
+    id: Optional[int] = None
     name: str
 
 
@@ -437,35 +463,29 @@ class StudyMetadataDTO(AntaresBaseModel):
     updated: str
     type: str
     owner: OwnerInfo
-    groups: t.List[GroupDTO]
+    groups: List[GroupDTO]
     public_mode: PublicMode
     workspace: str
     managed: bool
     archived: bool
-    horizon: t.Optional[str] = None
-    scenario: t.Optional[str] = None
-    status: t.Optional[str] = None
-    doc: t.Optional[str] = None
-    folder: t.Optional[str] = None
-    tags: t.List[str] = []
+    horizon: Optional[str] = None
+    folder: Optional[str] = None
+    tags: List[str] = []
 
     @field_validator("horizon", mode="before")
-    def transform_horizon_to_str(cls, val: t.Union[str, int, None]) -> t.Optional[str]:
+    def transform_horizon_to_str(cls, val: str | int | None) -> Optional[str]:
         # horizon can be an int.
         return str(val) if val else val  # type: ignore
 
 
 class StudyMetadataPatchDTO(AntaresBaseModel):
-    name: t.Optional[str] = None
-    author: t.Optional[str] = None
-    horizon: t.Optional[str] = None
-    scenario: t.Optional[str] = None
-    status: t.Optional[str] = None
-    doc: t.Optional[str] = None
-    tags: t.List[str] = []
+    name: Optional[str] = None
+    author: Optional[str] = None
+    horizon: Optional[str] = None
+    tags: List[str] = []
 
     @field_validator("tags", mode="before")
-    def _normalize_tags(cls, v: t.List[str]) -> t.List[str]:
+    def _normalize_tags(cls, v: List[str]) -> List[str]:
         """Remove leading and trailing whitespaces, and replace consecutive whitespaces by a single one."""
         tags = []
         for tag in v:
@@ -479,14 +499,14 @@ class StudyMetadataPatchDTO(AntaresBaseModel):
 
 
 class StudySimSettingsDTO(AntaresBaseModel):
-    general: t.Dict[str, t.Any]
-    input: t.Dict[str, t.Any]
-    output: t.Dict[str, t.Any]
-    optimization: t.Dict[str, t.Any]
-    otherPreferences: t.Dict[str, t.Any]
-    advancedParameters: t.Dict[str, t.Any]
-    seedsMersenneTwister: t.Dict[str, t.Any]
-    playlist: t.Optional[t.List[int]] = None
+    general: Dict[str, Any]
+    input: Dict[str, Any]
+    output: Dict[str, Any]
+    optimization: Dict[str, Any]
+    otherPreferences: Dict[str, Any]
+    advancedParameters: Dict[str, Any]
+    seedsMersenneTwister: Dict[str, Any]
+    playlist: Optional[List[int]] = None
 
 
 class StudySimResultDTO(AntaresBaseModel):
@@ -494,8 +514,6 @@ class StudySimResultDTO(AntaresBaseModel):
     type: str
     settings: StudySimSettingsDTO
     completionDate: str
-    referenceStatus: bool
-    synchronized: bool
     status: str
     archived: bool
 
@@ -575,12 +593,12 @@ class StudyDownloadDTO(AntaresBaseModel):
     """
 
     type: StudyDownloadType
-    years: t.Optional[t.List[int]]
+    years: Optional[List[int]]
     level: StudyDownloadLevelDTO
-    filterIn: t.Optional[str]
-    filterOut: t.Optional[str]
-    filter: t.Optional[t.List[str]]
-    columns: t.Optional[t.List[str]]
+    filterIn: Optional[str]
+    filterOut: Optional[str]
+    filter: Optional[List[str]]
+    columns: Optional[List[str]]
     synthesis: bool = False
     includeClusters: bool = False
 
@@ -592,34 +610,47 @@ class MatrixIndex(AntaresBaseModel):
     level: StudyDownloadLevelDTO = StudyDownloadLevelDTO.HOURLY
 
 
+def _list_to_np(array: list[float]) -> npt.NDArray[np.float64]:
+    return np.array(array, dtype=np.float64)
+
+
+def _np_to_list(array: npt.NDArray[np.float64]) -> list[float]:
+    return cast(list[float], array.tolist())
+
+
+NpArray: TypeAlias = Annotated[npt.NDArray[np.float64], PlainSerializer(_np_to_list), BeforeValidator(_list_to_np)]
+
+
 class TimeSerie(AntaresBaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True, ser_json_inf_nan="constants")
+
     name: str
     unit: str
-    data: t.List[t.Optional[float]] = []
+    data: NpArray = np.zeros(shape=(0,))
 
 
 class TimeSeriesData(AntaresBaseModel):
     type: StudyDownloadType
     name: str
-    data: t.Dict[str, t.List[TimeSerie]] = {}
+    data: Dict[str, List[TimeSerie]] = {}
 
 
 class MatrixAggregationResultDTO(AntaresBaseModel):
     index: MatrixIndex
-    data: t.List[TimeSeriesData]
-    warnings: t.List[str]
+    data: List[TimeSeriesData]
+    warnings: List[str]
 
 
 class MatrixAggregationResult(AntaresBaseModel):
     index: MatrixIndex
-    data: t.Dict[t.Tuple[StudyDownloadType, str], t.Dict[str, t.List[TimeSerie]]]
-    warnings: t.List[str]
+    data: Dict[Tuple[StudyDownloadType, str], Dict[str, List[TimeSerie]]]
+    warnings: List[str]
 
     def to_dto(self) -> MatrixAggregationResultDTO:
-        return MatrixAggregationResultDTO.construct(
+        return MatrixAggregationResultDTO.model_construct(
             index=self.index,
             data=[
-                TimeSeriesData.construct(
+                TimeSeriesData.model_construct(
                     type=key_type,
                     name=key_name,
                     data=self.data[(key_type, key_name)],

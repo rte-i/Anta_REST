@@ -12,29 +12,37 @@
 
 from pathlib import Path
 
+import pytest
+
+from antarest.study.business.model.binding_constraint_model import BindingConstraint
+from antarest.study.business.model.thermal_cluster_model import ThermalCluster
+from antarest.study.model import STUDY_VERSION_7_0
 from antarest.study.storage.rawstudy.model.filesystem.config.binding_constraint import BindingConstraintFrequency
 from antarest.study.storage.rawstudy.model.filesystem.config.model import (
     Area,
-    BindingConstraintDTO,
     DistrictSet,
     FileStudyTreeConfig,
     FileStudyTreeConfigDTO,
+    Mode,
     Simulation,
+    validate_config,
 )
+from antarest.study.storage.rawstudy.model.filesystem.config.validation import study_version_context
 
 
-def test_file_study_tree_config_dto():
-    config = FileStudyTreeConfig(
+@pytest.fixture
+def config() -> FileStudyTreeConfig:
+    return FileStudyTreeConfig(
         study_path=Path("test"),
         path=Path("curr_path"),
         study_id="study_id",
-        version=700,
+        version=STUDY_VERSION_7_0,
         output_path=Path("output_path"),
         areas={
             "a": Area(
                 name="a",
                 links={},
-                thermals=[],
+                thermals=[ThermalCluster(name="cluster")],
                 renewables=[],
                 filters_synthesis=[],
                 filters_year=[],
@@ -45,7 +53,7 @@ def test_file_study_tree_config_dto():
             "o": Simulation(
                 name="o",
                 date="date",
-                mode="mode",
+                mode=Mode.ECONOMY,
                 nbyears=1,
                 synthesis=True,
                 by_year=True,
@@ -54,18 +62,26 @@ def test_file_study_tree_config_dto():
                 xpansion="",
             )
         },
-        bindings=[
-            BindingConstraintDTO(
-                id="b1",
-                areas=set(),
-                clusters=set(),
-                time_step=BindingConstraintFrequency.DAILY,
-            )
-        ],
+        bindings=[BindingConstraint(**{"name": "b1", "time_step": BindingConstraintFrequency.DAILY})],
         store_new_set=False,
         archive_input_series=["?"],
         enr_modelling="aggregated",
     )
+
+
+def test_file_study_tree_config_dto(config: FileStudyTreeConfig):
     config_dto = FileStudyTreeConfigDTO.from_build_config(config)
-    assert sorted(list(config_dto.model_dump()) + ["cache"]) == sorted(list(config.__dict__))
+    assert sorted(list(config_dto.model_dump())) == sorted(list(config.__dict__))
     assert config_dto.to_build_config() == config
+
+    config_dict = config_dto.model_dump()
+    parsed_config = FileStudyTreeConfigDTO.model_validate(
+        config_dict, context=study_version_context(STUDY_VERSION_7_0)
+    ).to_build_config()
+    assert parsed_config == config
+
+
+def test_file_study_tree_config_round_trip(config: FileStudyTreeConfig):
+    config_dict = FileStudyTreeConfigDTO.from_build_config(config).model_dump()
+    parsed_config = validate_config(STUDY_VERSION_7_0, config_dict)
+    assert parsed_config == config

@@ -14,34 +14,33 @@
 
 import type { AxiosRequestConfig } from "axios";
 import * as RA from "ramda-adjunct";
-import client from "./client";
+import type { StudyMapDistrict } from "../../redux/ducks/studyMaps";
 import type {
+  AreasConfig,
   FileStudyTreeConfigDTO,
   LaunchJob,
+  LaunchJobDTO,
+  LaunchOptions,
   MatrixAggregationResult,
-  StudyOutputDownloadDTO,
+  StudyLayer,
   StudyMetadata,
   StudyMetadataDTO,
-  StudyOutput,
-  StudyPublicMode,
-  AreasConfig,
-  LaunchJobDTO,
   StudyMetadataPatchDTO,
-  LaunchOptions,
-  StudyLayer,
-} from "../../common/types";
-import { getConfig } from "../config";
+  StudyOutput,
+  StudyOutputDownloadDTO,
+  StudyPublicMode,
+} from "../../types/types";
 import { convertStudyDtoToMetadata } from "../utils";
+import client from "./client";
 import type { FileDownloadTask } from "./downloads";
-import type { StudyMapDistrict } from "../../redux/ducks/studyMaps";
-import type { NonStudyFolderDTO } from "@/components/App/Studies/StudyTree/types";
+import type { FolderDTO } from "@/components/App/Studies/StudyTree/types";
 
 interface Workspace {
   name: string;
 }
 
 const getStudiesRaw = async (): Promise<Record<string, StudyMetadataDTO>> => {
-  const res = await client.get(`/v1/studies`);
+  const res = await client.get(`/v1/studies?exists=True`);
   return res.data;
 };
 
@@ -66,8 +65,11 @@ export const getWorkspaces = async () => {
  * @returns list of folders that are not studies, under the given path
  */
 export const getFolders = async (workspace: string, folderPath: string) => {
-  const res = await client.get<NonStudyFolderDTO[]>(
-    `/v1/private/explorer/${workspace}/_list_dir?path=${encodeURIComponent(folderPath)}`,
+  const res = await client.get<FolderDTO[]>(
+    `/v1/private/explorer/${encodeURIComponent(workspace)}/_list_dir?path=${encodeURIComponent(folderPath)}`,
+    {
+      timeout: 1000 * 300, // Wait for 5 minutes
+    },
   );
   return res.data;
 };
@@ -165,13 +167,6 @@ export const editStudy = async (
   return res.data;
 };
 
-export const copyStudy = async (sid: string, name: string, withOutputs: boolean): Promise<void> => {
-  const res = await client.post(
-    `/v1/studies/${sid}/copy?dest=${encodeURIComponent(name)}&with_outputs=${withOutputs}`,
-  );
-  return res.data;
-};
-
 export const moveStudy = async (studyId: string, folder: string) => {
   await client.put(`/v1/studies/${studyId}/move`, null, {
     params: { folder_dest: folder },
@@ -208,12 +203,7 @@ export const exportStudy = async (sid: string, skipOutputs: boolean): Promise<Fi
   return res.data;
 };
 
-export const getExportUrl = (sid: string, skipOutputs = false): string =>
-  `${
-    getConfig().downloadHostUrl || getConfig().baseUrl + getConfig().restEndpoint
-  }/v1/studies/${sid}/export?no_output=${skipOutputs}`;
-
-export const exportOuput = async (sid: string, output: string): Promise<FileDownloadTask> => {
+export const exportOutput = async (sid: string, output: string): Promise<FileDownloadTask> => {
   const res = await client.get(`/v1/studies/${sid}/outputs/${output}/export`);
   return res.data;
 };

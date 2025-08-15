@@ -18,13 +18,14 @@ import re
 import shutil
 import tempfile
 import time
-import typing as t
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Callable, List, Optional, Sequence, cast
 from uuid import uuid4
 from zipfile import ZipFile
 
 from antares.study.version import StudyVersion
+from antares.study.version.create_app import CreateApp
 from antares.study.version.upgrade_app import is_temporary_upgrade_dir
 
 from antarest.core.config import Config, WorkspaceConfig
@@ -35,8 +36,11 @@ from antarest.core.exceptions import (
     UnsupportedStudyVersion,
     WorkspaceNotFound,
 )
-from antarest.core.interfaces.cache import CacheConstants, ICache
-from antarest.core.jwt import JWTUser
+from antarest.core.interfaces.cache import (
+    ICache,
+    study_config_cache_key,
+    study_raw_cache_key,
+)
 from antarest.core.model import PermissionInfo, StudyPermissionType
 from antarest.core.permissions import check_permission
 from antarest.core.requests import UserHasNotPermissionError
@@ -44,14 +48,17 @@ from antarest.core.serde.ini_reader import IniReader
 from antarest.core.serde.ini_writer import IniWriter
 from antarest.core.utils.archives import is_archive_format
 from antarest.core.utils.utils import StopWatch
+from antarest.login.utils import require_current_user
 from antarest.study.model import (
     DEFAULT_WORKSPACE_NAME,
     STUDY_REFERENCE_TEMPLATES,
+    STUDY_VERSION_9_0,
     MatrixIndex,
     Study,
     StudyDownloadLevelDTO,
     StudyMetadataDTO,
 )
+from antarest.study.storage.rawstudy.model.filesystem.config.model import Mode
 from antarest.study.storage.rawstudy.model.filesystem.factory import FileStudy, StudyFactory
 from antarest.study.storage.rawstudy.model.filesystem.root.filestudytree import FileStudyTree
 from antarest.study.storage.rawstudy.model.helpers import FileStudyHelpers
@@ -79,7 +86,8 @@ def update_antares_info(metadata: Study, study_tree: FileStudyTree, *, update_au
     study_data_info["antares"]["caption"] = metadata.name
     study_data_info["antares"]["created"] = metadata.created_at.timestamp()
     study_data_info["antares"]["lastsave"] = metadata.updated_at.timestamp()
-    study_data_info["antares"]["version"] = metadata.version
+    version = StudyVersion.parse(metadata.version)
+    study_data_info["antares"]["version"] = f"{version:2d}" if version >= STUDY_VERSION_9_0 else f"{version:ddd}"
     if update_author and metadata.additional_data:
         study_data_info["antares"]["author"] = metadata.additional_data.author
     study_tree.save(study_data_info, ["study"])
@@ -138,7 +146,7 @@ def is_output_archived(path_output: Path) -> bool:
     return any((path_output.parent / (path_output.name + suffix)).exists() for suffix in suffixes)
 
 
-def extract_output_name(path_output: Path, new_suffix_name: t.Optional[str] = None) -> str:
+def extract_output_name(path_output: Path, new_suffix_name: Optional[str] = None) -> str:
     ini_reader = IniReader()
     archived = is_output_archived(path_output)
     if archived:
@@ -157,7 +165,8 @@ def extract_output_name(path_output: Path, new_suffix_name: t.Optional[str] = No
 
     date = datetime.fromtimestamp(int(general_info["timestamp"])).strftime("%Y%m%d-%H%M")
 
-    mode = "eco" if general_info["mode"] == "Economy" else "adq"
+    mode = Mode(general_info["mode"]).get_output_suffix()
+
     suffix_name = general_info["name"] or ""
     if new_suffix_name:
         suffix_name = new_suffix_name
@@ -179,27 +188,24 @@ def is_managed(study: Study) -> bool:
 def remove_from_cache(cache: ICache, root_id: str) -> None:
     cache.invalidate_all(
         [
-            f"{CacheConstants.RAW_STUDY}/{root_id}",
-            f"{CacheConstants.STUDY_FACTORY}/{root_id}",
+            study_raw_cache_key(root_id),
+            study_config_cache_key(root_id),
         ]
     )
 
 
-def create_new_empty_study(version: StudyVersion, path_study: Path, path_resources: Path) -> None:
-    version_template: t.Optional[str] = STUDY_REFERENCE_TEMPLATES.get(version, None)
-    if version_template is None:
-        msg = f"{version} is not a supported version, supported versions are: {list(STUDY_REFERENCE_TEMPLATES.keys())}"
+def create_new_empty_study(version: StudyVersion, path_study: Path) -> None:
+    if version not in STUDY_REFERENCE_TEMPLATES:
+        msg = f"{version} is not a supported version, supported versions are: {STUDY_REFERENCE_TEMPLATES}"
         raise UnsupportedStudyVersion(msg)
 
-    empty_study_zip = path_resources / version_template
-
-    with ZipFile(empty_study_zip) as zip_output:
-        zip_output.extractall(path=path_study)
+    app = CreateApp(study_dir=path_study, caption="To be replaced", version=version, author="Unknown")
+    app()
 
 
 def study_matcher(
-    name: t.Optional[str], workspace: t.Optional[str], folder: t.Optional[str]
-) -> t.Callable[[StudyMetadataDTO], bool]:
+    name: Optional[str], workspace: Optional[str], folder: Optional[str]
+) -> Callable[[StudyMetadataDTO], bool]:
     def study_match(study: StudyMetadataDTO) -> bool:
         if name and not study.name.startswith(name):
             return False
@@ -213,20 +219,14 @@ def study_matcher(
 
 
 def assert_permission_on_studies(
-    user: t.Optional[JWTUser],
-    studies: t.Sequence[t.Union[Study, StudyMetadataDTO]],
-    permission_type: StudyPermissionType,
-    *,
-    raising: bool = True,
-) -> bool:
+    studies: Sequence[Study | StudyMetadataDTO], permission_type: StudyPermissionType
+) -> None:
     """
     Asserts whether the provided user has the required permissions on the given studies.
 
     Args:
-        user: The user whose permissions need to be verified.
         studies: The studies for which permissions need to be verified.
         permission_type: The type of permission to be checked for the user.
-        raising: If set to `True`, raises `UserHasNotPermissionError` when the permission check fails.
 
     Returns:
         `True` if the user has the required permissions, `False` otherwise.
@@ -235,9 +235,7 @@ def assert_permission_on_studies(
         `UserHasNotPermissionError`: If the raising parameter is set to `True`
             and the user does not have the required permissions.
     """
-    if not user:
-        logger.error("FAIL permission: user is not logged")
-        raise UserHasNotPermissionError()
+    user = require_current_user()
     msg = {
         0: f"FAIL permissions: user '{user}' has no access to any study",
         1: f"FAIL permissions: user '{user}' does not have {permission_type.value} permission on {studies[0].id}",
@@ -246,26 +244,16 @@ def assert_permission_on_studies(
     infos = (PermissionInfo.from_study(study) for study in studies)
     if any(not check_permission(user, permission_info, permission_type) for permission_info in infos):
         logger.error(msg)
-        if raising:
-            raise UserHasNotPermissionError(msg)
-        return False
-    return True
+        raise UserHasNotPermissionError(msg)
 
 
-def assert_permission(
-    user: t.Optional[JWTUser],
-    study: t.Optional[t.Union[Study, StudyMetadataDTO]],
-    permission_type: StudyPermissionType,
-    raising: bool = True,
-) -> bool:
+def assert_permission(study: Optional[Study | StudyMetadataDTO], permission_type: StudyPermissionType) -> None:
     """
     Assert user has permission to edit or read study.
 
     Args:
-        user: user logged
         study: study asked
         permission_type: level of permission
-        raising: raise error if permission not matched
 
     Returns:
         `True` if the user has the required permissions, `False` otherwise.
@@ -275,7 +263,7 @@ def assert_permission(
             and the user does not have the required permissions.
     """
     studies = [study] if study else []
-    return assert_permission_on_studies(user, studies, permission_type, raising=raising)
+    assert_permission_on_studies(studies, permission_type)
 
 
 MATRIX_INPUT_DAYS_COUNT = 365
@@ -300,7 +288,7 @@ DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 
 def get_start_date(
     file_study: FileStudy,
-    output_id: t.Optional[str] = None,
+    output_id: Optional[str] = None,
     level: StudyDownloadLevelDTO = StudyDownloadLevelDTO.HOURLY,
 ) -> MatrixIndex:
     """
@@ -313,12 +301,12 @@ def get_start_date(
 
     """
     config = FileStudyHelpers.get_config(file_study, output_id)["general"]
-    starting_month = t.cast(str, config.get("first-month-in-year"))
-    starting_day = t.cast(str, config.get("january.1st"))
-    leapyear = t.cast(bool, config.get("leapyear"))
-    first_week_day = t.cast(str, config.get("first.weekday"))
-    start_offset = t.cast(int, config.get("simulation.start"))
-    end = t.cast(int, config.get("simulation.end"))
+    starting_month = cast(str, config.get("first-month-in-year"))
+    starting_day = cast(str, config.get("january.1st"))
+    leapyear = cast(bool, config.get("leapyear"))
+    first_week_day = cast(str, config.get("first.weekday"))
+    start_offset = cast(int, config.get("simulation.start"))
+    end = cast(int, config.get("simulation.end"))
 
     starting_month_index = MONTHS[starting_month.title()]
     starting_day_index = DAY_NAMES.index(starting_day.title())
@@ -334,7 +322,7 @@ def get_start_date(
     start_date = datetime(target_year, starting_month_index, 1) + start_offset_days
 
     def _get_steps(
-        daily_steps: int, temporality: StudyDownloadLevelDTO, begin_date: datetime, is_output: t.Optional[str] = None
+        daily_steps: int, temporality: StudyDownloadLevelDTO, begin_date: datetime, is_output: Optional[str] = None
     ) -> int:
         temporality_mapping = {
             StudyDownloadLevelDTO.DAILY: daily_steps,
@@ -362,7 +350,7 @@ def get_start_date(
             break
     first_week_size = first_week_offset if first_week_offset != 0 else 7
 
-    return MatrixIndex.construct(
+    return MatrixIndex.model_construct(
         start_date=str(start_date),
         steps=steps,
         first_week_size=first_week_size,
@@ -375,16 +363,16 @@ def export_study_flat(
     dest: Path,
     study_factory: StudyFactory,
     outputs: bool = True,
-    output_list_filter: t.Optional[t.List[str]] = None,
+    output_list_filter: Optional[List[str]] = None,
     denormalize: bool = True,
-    output_src_path: t.Optional[Path] = None,
+    output_src_path: Optional[Path] = None,
 ) -> None:
     start_time = time.time()
 
     output_src_path = output_src_path or study_dir / "output"
     output_dest_path = dest / "output"
 
-    def ignore_outputs(directory: str, _: t.Sequence[str]) -> t.Sequence[str]:
+    def ignore_outputs(directory: str, _: Sequence[str]) -> Sequence[str]:
         return ["output"] if str(directory) == str(study_dir) else []
 
     shutil.copytree(src=study_dir, dst=dest, ignore=ignore_outputs)
@@ -434,7 +422,7 @@ def is_folder_safe(workspace: WorkspaceConfig, folder: str) -> bool:
     requested_path = workspace.path / folder
     requested_path = requested_path.resolve()
     safe_dir = workspace.path.resolve()
-    # check weither the requested path is a subdirectory of the workspace
+    # check whether the requested path is a subdirectory of the workspace
     return requested_path.is_relative_to(safe_dir)
 
 
@@ -477,7 +465,7 @@ def is_ts_gen_tmp_dir(path: Path) -> bool:
     return path.name.startswith(TS_GEN_PREFIX) and "".join(path.suffixes[-2:]) == TS_GEN_SUFFIX and path.is_dir()
 
 
-def should_ignore_folder_for_scan(path: Path, filter_in: t.List[str], filter_out: t.List[str]) -> bool:
+def should_ignore_folder_for_scan(path: Path, filter_in: List[str], filter_out: List[str]) -> bool:
     if is_aw_no_scan(path):
         logger.info(f"No scan directive file found. Will skip further scan of folder {path}")
         return True
@@ -497,11 +485,18 @@ def should_ignore_folder_for_scan(path: Path, filter_in: t.List[str], filter_out
     )
 
 
-def has_non_study_folder(path: Path, filter_in: t.List[str], filter_out: t.List[str]) -> bool:
-    return any(is_non_study_folder(sub_path, filter_in, filter_out) for sub_path in path.iterdir())
+def has_children(path: Path, filter_in: List[str], filter_out: List[str], show_hidden_file: bool = False) -> bool:
+    for sub_path in path.iterdir():
+        try:
+            show = show_hidden_file or not sub_path.name.startswith(".")
+            if not should_ignore_folder_for_scan(sub_path, filter_in, filter_out) and show:
+                return True
+        except (PermissionError, OSError):
+            logger.warning(f"tried to run is_non_study_folder on {sub_path} but no permission")
+    return False
 
 
-def is_non_study_folder(path: Path, filter_in: t.List[str], filter_out: t.List[str]) -> bool:
+def is_non_study_folder(path: Path, filter_in: List[str], filter_out: List[str]) -> bool:
     if is_study_folder(path):
         return False
     if should_ignore_folder_for_scan(path, filter_in, filter_out):

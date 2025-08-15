@@ -12,7 +12,7 @@
  * This file is part of the Antares project.
  */
 
-import type { Area, StudyMetadata } from "../../../../../../../../common/types";
+import type { Area, StudyMetadata } from "../../../../../../../../types/types";
 import client from "../../../../../../../../services/api/client";
 
 ////////////////////////////////////////////////////////////////
@@ -65,6 +65,8 @@ export interface HydroFormFields {
   powerToLevel: boolean;
   leewayLow: number;
   leewayUp: number;
+  // Since v9.2
+  overflowSpilledCostDifference?: number;
 }
 
 ////////////////////////////////////////////////////////////////

@@ -11,12 +11,11 @@
 # This file is part of the Antares project.
 import textwrap
 from pathlib import Path
-from unittest.mock import Mock
 
 import pytest
 from antares.study.version import StudyVersion
 
-from antarest.core.serde.ini_reader import IniReader
+from antarest.core.serde.ini_reader import read_ini
 from antarest.study.model import STUDY_VERSION_8_6, STUDY_VERSION_8_8
 from antarest.study.storage.rawstudy.model.filesystem.config.model import Area, FileStudyTreeConfig
 from antarest.study.storage.rawstudy.model.filesystem.root.input.bindingconstraints.bindingconstraints_ini import (
@@ -71,7 +70,6 @@ def test_group_is_parsed_to_lower_case(study_dir: Path, ini_file: Path, ini_node
     )
 
     node = ini_node_cluster_class(
-        context=Mock(),
         config=create_study_config(study_dir, ini_file, STUDY_VERSION_8_8, "area_test"),
         area="area_test",
     )
@@ -87,14 +85,13 @@ def test_group_is_parsed_to_lower_case(study_dir: Path, ini_file: Path, ini_node
 def test_cluster_ini_list(study_dir: Path, ini_file: Path, ini_node_cluster_class):
     data = {"Cluster 1": {"group": "Gas"}}
     node = ini_node_cluster_class(
-        context=Mock(),
         config=create_study_config(study_dir, ini_file, STUDY_VERSION_8_8, "area_test"),
         area="area_test",
     )
 
     node.save(data)
     # Asserts the data is saved correctly
-    ini_content = IniReader().read(ini_file)
+    ini_content = read_ini(ini_file)
     assert ini_content == {"Cluster 1": {"group": "gas"}}
     # Asserts cluster group is returned in lower case
     content = node.get([])
@@ -111,15 +108,14 @@ def test_binding_constraint_group_writing(
     ini_file: Path,
 ):
     node = BindingConstraintsIni(
-        context=Mock(),
         config=FileStudyTreeConfig(study_path=study_dir, path=ini_file, version=STUDY_VERSION_8_8, study_id="id"),
     )
 
     node.save({"0": {"name": "BC_1", "group": "GRP_1"}})
-    assert IniReader().read(ini_file) == {"0": {"name": "BC_1", "group": "grp_1"}}
+    assert read_ini(ini_file) == {"0": {"name": "BC_1", "group": "grp_1"}}
 
     node.save(data="GRP_2", url=["0", "group"])
-    assert IniReader().read(ini_file) == {"0": {"name": "BC_1", "group": "grp_2"}}
+    assert read_ini(ini_file) == {"0": {"name": "BC_1", "group": "grp_2"}}
 
 
 @pytest.mark.unit_test
@@ -137,7 +133,6 @@ def test_binding_constraint_group_parsing(
     )
 
     node = BindingConstraintsIni(
-        context=Mock(),
         config=FileStudyTreeConfig(study_path=study_dir, path=ini_file, version=STUDY_VERSION_8_8, study_id="id"),
     )
 
@@ -156,10 +151,9 @@ def test_st_storage_group_is_written_to_title_case_for_8_6(study_dir: Path, ini_
         )
     )
     node = InputSTStorageAreaList(
-        context=Mock(),
         config=create_study_config(study_dir, ini_file, STUDY_VERSION_8_6, "area_test"),
         area="area_test",
     )
 
     node.save({"Cluster 1": {"group": "PsP_open"}, "Cluster 2": {"group": "UnknownGroup"}})
-    assert IniReader().read(ini_file) == {"Cluster 1": {"group": "PSP_open"}, "Cluster 2": {"group": "unknowngroup"}}
+    assert read_ini(ini_file) == {"Cluster 1": {"group": "PSP_open"}, "Cluster 2": {"group": "unknowngroup"}}

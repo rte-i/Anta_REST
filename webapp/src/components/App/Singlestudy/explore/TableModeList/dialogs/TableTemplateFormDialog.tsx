@@ -12,18 +12,18 @@
  * This file is part of the Antares project.
  */
 
-import { Box } from "@mui/material";
+import Fieldset from "@/components/common/Fieldset";
+import { validateArray } from "@/utils/validation/array";
+import { validateString } from "@/utils/validation/string";
 import startCase from "lodash/startCase";
+import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
+import { TABLE_MODE_TYPES } from "../../../../../../services/api/studies/tableMode/constants";
 import FormDialog, { type FormDialogProps } from "../../../../../common/dialogs/FormDialog";
 import ListFE from "../../../../../common/fieldEditors/ListFE";
 import SelectFE from "../../../../../common/fieldEditors/SelectFE";
 import StringFE from "../../../../../common/fieldEditors/StringFE";
 import { getTableColumnsForType, type TableTemplate } from "../utils";
-import { TABLE_MODE_TYPES } from "../../../../../../services/api/studies/tableMode/constants";
-import { useMemo } from "react";
-import { validateArray } from "@/utils/validation/array";
-import { validateString } from "@/utils/validation/string";
 
 export interface TableTemplateFormDialogProps
   extends Pick<
@@ -61,26 +61,18 @@ function TableTemplateFormDialog(props: TableTemplateFormDialogProps) {
       onSubmit={onSubmit}
       onCancel={onCancel}
     >
-      {({ control, setValue, getValues }) => (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 2,
-          }}
-        >
+      {({ control, setValue, watch }) => (
+        <Fieldset fullFieldWidth>
           <StringFE
-            sx={{ m: 0 }}
             label={t("global.name")}
             name="name"
             autoFocus
             control={control}
             rules={{
-              validate: (v) =>
-                validateString(v, {
-                  existingValues: existingTables,
-                  editedValue: config?.defaultValues?.name,
-                }),
+              validate: validateString({
+                existingValues: existingTables,
+                editedValue: config?.defaultValues?.name,
+              }),
             }}
           />
           <SelectFE
@@ -93,13 +85,13 @@ function TableTemplateFormDialog(props: TableTemplateFormDialogProps) {
           />
           <ListFE
             label={t("study.columns")}
-            options={[...getTableColumnsForType(getValues("type"))]}
+            options={[...getTableColumnsForType(watch("type"))]}
             getOptionLabel={startCase}
             name="columns"
             control={control}
             rules={{ validate: validateArray() }}
           />
-        </Box>
+        </Fieldset>
       )}
     </FormDialog>
   );

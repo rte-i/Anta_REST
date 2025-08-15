@@ -12,9 +12,9 @@
  * This file is part of the Antares project.
  */
 
-import { FIXTURES, FIXTURES_BUILD_STUDY_TREE } from "./fixtures";
-import { buildStudyTree, insertFoldersIfNotExist, insertWorkspacesIfNotExist } from "../utils";
-import type { NonStudyFolderDTO, StudyTreeNode } from "../types";
+import { FIXTURES } from "./fixtures";
+import { insertFoldersIfNotExist } from "../utils";
+import type { FolderDTO, StudyTreeNode } from "../types";
 
 describe("StudyTree Utils", () => {
   describe("mergeStudyTreeAndFolders", () => {
@@ -49,7 +49,7 @@ describe("StudyTree Utils", () => {
         path: "/",
         children: [{ name: "a", path: "/a", children: [] }],
       };
-      const invalidFolder: NonStudyFolderDTO = {
+      const invalidFolder: FolderDTO = {
         name: "invalid",
         path: "/invalid",
         workspace: "nonexistent",
@@ -57,59 +57,6 @@ describe("StudyTree Utils", () => {
       };
       const result = insertFoldersIfNotExist(tree, [invalidFolder]);
       expect(result).toEqual(tree);
-    });
-
-    test("should handle empty workspaces", () => {
-      const tree: StudyTreeNode = {
-        name: "Root",
-        path: "/",
-        children: [
-          {
-            name: "a",
-            path: "/a",
-            children: [{ name: "suba", path: "/a/suba", children: [] }],
-          },
-        ],
-      };
-      const workspaces: string[] = [];
-      const result = insertWorkspacesIfNotExist(tree, workspaces);
-      expect(result).toEqual(tree);
-    });
-
-    test("should merge workspaces", () => {
-      const tree: StudyTreeNode = {
-        name: "Root",
-        path: "/",
-        children: [
-          {
-            name: "a",
-            path: "/a",
-            children: [{ name: "suba", path: "/a/suba", children: [] }],
-          },
-        ],
-      };
-      const expected: StudyTreeNode = {
-        name: "Root",
-        path: "/",
-        children: [
-          {
-            name: "a",
-            path: "/a",
-            children: [{ name: "suba", path: "/a/suba", children: [] }],
-          },
-          { name: "workspace1", path: "/workspace1", children: [] },
-          { name: "workspace2", path: "/workspace2", children: [] },
-        ],
-      };
-
-      const workspaces = ["a", "workspace1", "workspace2"];
-      const result = insertWorkspacesIfNotExist(tree, workspaces);
-      expect(result).toEqual(expected);
-    });
-
-    test.each(Object.values(FIXTURES_BUILD_STUDY_TREE))("$name", ({ studies, expected }) => {
-      const result = buildStudyTree(studies);
-      expect(result).toEqual(expected);
     });
   });
 });

@@ -35,7 +35,7 @@ import {
   type AdvancedParamsFormFields,
 } from "./utils";
 import { useOutletContext } from "react-router";
-import type { StudyMetadata } from "../../../../../../common/types";
+import type { StudyMetadata } from "../../../../../../types/types";
 
 function Fields() {
   const [t] = useTranslation();
@@ -118,12 +118,14 @@ function Fields() {
       </Fieldset>
 
       <Fieldset legend={t("study.configuration.advancedParameters.otherPreferences")}>
-        <SelectFE
-          label={t("study.configuration.advancedParameters.initialReservoirLevels")}
-          options={INITIAL_RESERVOIR_OPTIONS}
-          name="initialReservoirLevels"
-          control={control}
-        />
+        {studyVersion < 920 && (
+          <SelectFE
+            label={t("study.configuration.advancedParameters.initialReservoirLevels")}
+            options={INITIAL_RESERVOIR_OPTIONS}
+            name="initialReservoirLevels"
+            control={control}
+          />
+        )}
         <SelectFE
           label={t("study.configuration.advancedParameters.hydroHeuristicPolicy")}
           options={HYDRO_HEURISTIC_POLICY_OPTIONS}

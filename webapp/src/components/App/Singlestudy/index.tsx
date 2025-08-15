@@ -12,190 +12,162 @@
  * This file is part of the Antares project.
  */
 
-/* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useCallback, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
-import { Box, Divider } from "@mui/material";
-import debug from "debug";
-import { useTranslation } from "react-i18next";
-import { usePromise as usePromiseWrapper } from "react-use";
-import type { StudyMetadata, VariantTree } from "../../../common/types";
-import { getStudyMetadata } from "../../../services/api/study";
-import NavHeader from "./NavHeader";
-import { getVariantChildren, getVariantParents } from "../../../services/api/variant";
-import TabWrapper from "./explore/TabWrapper";
-import HomeView from "./HomeView";
-import { fetchStudyVersions, setCurrentStudy } from "../../../redux/ducks/studies";
-import { findNodeInTree } from "../../../services/utils";
-import CommandDrawer from "./Commands";
-import { addWsEventListener } from "../../../services/webSocket/ws";
-import useAppDispatch from "../../../redux/hooks/useAppDispatch";
-import SimpleLoader from "../../common/loaders/SimpleLoader";
-import FreezeStudy from "./FreezeStudy";
-import type { WsEvent } from "@/services/webSocket/types";
+import UsePromiseCond from "@/components/common/utils/UsePromiseCond";
+import usePromise from "@/hooks/usePromise";
+import { countDescendants, findNodeInTree } from "@/services/utils";
 import { WsEventType } from "@/services/webSocket/constants";
-
-const logError = debug("antares:singlestudy:error");
+import type { WsEvent } from "@/services/webSocket/types";
+import { Box, Divider } from "@mui/material";
+import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
+import { useParams } from "react-router-dom";
+import { fetchStudyVersions, setCurrentStudy } from "../../../redux/ducks/studies";
+import useAppDispatch from "../../../redux/hooks/useAppDispatch";
+import { getStudyMetadata } from "../../../services/api/study";
+import { getVariantParents, getVariantTree } from "../../../services/api/variant";
+import { addWsEventListener } from "../../../services/webSocket/ws";
+import TabWrapper from "./explore/TabWrapper";
+import FreezeStudy from "./FreezeStudy";
+import HomeView from "./HomeView";
+import NavHeader from "./NavHeader";
 
 interface Props {
   isExplorer?: boolean;
 }
 
-function SingleStudy(props: Props) {
-  const { isExplorer } = props;
-  const { studyId } = useParams(); // TO DO
-  const [t] = useTranslation();
-  const [study, setStudy] = useState<StudyMetadata>();
-  const [parent, setParent] = useState<StudyMetadata>();
-  const [tree, setTree] = useState<VariantTree>();
-  const [openCommands, setOpenCommands] = useState(false);
+function SingleStudy({ isExplorer }: Props) {
+  const { studyId } = useParams();
+  const { t } = useTranslation();
   const dispatch = useAppDispatch();
-  const mounted = usePromiseWrapper();
 
-  const tabList = useMemo(
-    () => [
-      {
-        label: t("study.modelization"),
-        path: `/studies/${studyId}/explore/modelization`,
-      },
-      {
-        label: t("study.configuration"),
-        path: `/studies/${studyId}/explore/configuration`,
-      },
-      {
-        label: t("study.tableMode"),
-        path: `/studies/${studyId}/explore/tablemode`,
-      },
-      { label: "Xpansion", path: `/studies/${studyId}/explore/xpansion` },
-      {
-        label: t("study.results"),
-        path: `/studies/${studyId}/explore/results`,
-      },
-      {
-        label: t("study.debug"),
-        path: `/studies/${studyId}/explore/debug`,
-      },
-    ],
-    [studyId, t],
-  );
-
-  const updateStudyData = useCallback(async () => {
+  const res = usePromise(async () => {
     if (!studyId) {
+      throw new Error("No study ID provided");
+    }
+
+    const study = await getStudyMetadata(studyId);
+
+    const parents = await getVariantParents(studyId);
+    const parentStudy = parents.length > 0 ? parents[0] : undefined;
+
+    const root = parents.length > 0 ? parents[parents.length - 1] : study;
+    const variantTree = await getVariantTree(root.id);
+
+    const tree = findNodeInTree(study.id, variantTree);
+    const variantNb = tree ? countDescendants(tree) : 0;
+
+    return { study, parentStudy, variantTree, variantNb };
+  }, [studyId]);
+
+  useEffect(() => {
+    if (studyId) {
+      dispatch(setCurrentStudy(studyId));
+      dispatch(fetchStudyVersions());
+    }
+  }, [dispatch, studyId]);
+
+  // Change the name of the web browser tab
+  useEffect(() => {
+    const study = res.data?.study;
+
+    if (!study) {
       return;
     }
-    try {
-      const tmpStudy = await mounted(getStudyMetadata(studyId));
-      if (tmpStudy) {
-        const tmpParents = await mounted(getVariantParents(tmpStudy.id));
-        let root: StudyMetadata = tmpStudy;
-        if (tmpParents.length > 0) {
-          root = tmpParents[tmpParents.length - 1];
-        }
-        const tmpTree = await mounted(getVariantChildren(root.id));
-        setParent(tmpParents.length > 0 ? tmpParents[0] : undefined);
-        setStudy(tmpStudy);
-        setTree(tmpTree);
-      }
-    } catch (e) {
-      logError("Failed to fetch study informations", study, e);
-    }
-  }, [studyId]);
 
-  const listener = useCallback(
-    (ev: WsEvent) => {
-      switch (ev.type) {
-        case WsEventType.StudyEdited:
-          if (ev.payload.id === studyId) {
-            updateStudyData();
-          }
-          break;
+    document.title = `Antares Web | ${study.name} (${study.id})`;
 
-        default:
-          break;
-      }
-    },
-    [studyId, t, updateStudyData],
-  );
-
-  useEffect(() => {
-    const init = async () => {
-      if (studyId) {
-        dispatch(setCurrentStudy(studyId));
-        dispatch(fetchStudyVersions());
-        updateStudyData();
-      }
-    };
-    init();
-  }, [studyId]);
-
-  useEffect(() => {
-    const title = document.querySelector("title");
-    if (title && study) {
-      title.textContent = `Antares Web | ${study.name} (${study.id})`;
-    }
     return () => {
-      if (title) {
-        title.textContent = "Antares Web";
+      document.title = "Antares Web";
+    };
+  }, [res.data?.study]);
+
+  // Reload the study when it is edited
+  useEffect(() => {
+    const listener = (event: WsEvent) => {
+      if (event.type === WsEventType.StudyEdited || event.type === WsEventType.StudyDataEdited) {
+        if (event.payload.id === studyId) {
+          res.reload();
+        }
       }
     };
-  }, [study]);
 
-  useEffect(() => {
     return addWsEventListener(listener);
-  }, [listener]);
+  }, [res, studyId]);
 
-  if (study === undefined) {
-    return <SimpleLoader />;
-  }
+  ////////////////////////////////////////////////////////////////
+  // JSX
+  ////////////////////////////////////////////////////////////////
 
   return (
-    <Box
-      width="100%"
-      height="100%"
-      display="flex"
-      flexDirection="column"
-      justifyContent="flex-start"
-      alignItems="center"
-      boxSizing="border-box"
-      overflow="hidden"
-    >
-      <NavHeader
-        study={study}
-        updateStudyData={updateStudyData}
-        parent={parent}
-        isExplorer={isExplorer}
-        openCommands={() => setOpenCommands(true)}
-        childrenTree={
-          study !== undefined && tree !== undefined ? findNodeInTree(study.id, tree) : undefined
-        }
-      />
-      {!isExplorer && <Divider sx={{ width: "98%" }} />}
-      <Box
-        width="100%"
-        flex={1}
-        display="flex"
-        flexDirection="column"
-        justifyContent="flex-start"
-        alignItems="center"
-        boxSizing="border-box"
-        overflow="hidden"
-        position="relative"
-      >
-        {isExplorer === true ? (
-          <TabWrapper study={study} border tabList={tabList} />
-        ) : (
-          <HomeView study={study} tree={tree} />
-        )}
-        {studyId && <FreezeStudy studyId={studyId} />}
-      </Box>
-      {openCommands && studyId && (
-        <CommandDrawer
-          open={openCommands}
-          studyId={studyId}
-          onClose={() => setOpenCommands(false)}
-        />
+    <UsePromiseCond
+      response={res}
+      keepLastResolvedOnReload
+      ifFulfilled={({ study, parentStudy, variantTree, variantNb }) => (
+        <Box
+          width="100%"
+          height="100%"
+          display="flex"
+          flexDirection="column"
+          justifyContent="flex-start"
+          alignItems="center"
+          boxSizing="border-box"
+          overflow="hidden"
+        >
+          <NavHeader
+            study={study}
+            parentStudy={parentStudy}
+            isExplorer={isExplorer}
+            variantNb={variantNb}
+          />
+          {!isExplorer && <Divider flexItem />}
+          <Box
+            width="100%"
+            flex={1}
+            display="flex"
+            flexDirection="column"
+            justifyContent="flex-start"
+            alignItems="center"
+            boxSizing="border-box"
+            overflow="hidden"
+            position="relative"
+          >
+            {isExplorer === true ? (
+              <TabWrapper
+                study={study}
+                divider
+                tabList={[
+                  {
+                    label: t("study.modelization"),
+                    path: `/studies/${studyId}/explore/modelization`,
+                  },
+                  {
+                    label: t("study.configuration"),
+                    path: `/studies/${studyId}/explore/configuration`,
+                  },
+                  {
+                    label: t("study.tableMode"),
+                    path: `/studies/${studyId}/explore/tablemode`,
+                  },
+                  { label: "Xpansion", path: `/studies/${studyId}/explore/xpansion` },
+                  {
+                    label: t("study.results"),
+                    path: `/studies/${studyId}/explore/results`,
+                  },
+                  {
+                    label: t("study.debug"),
+                    path: `/studies/${studyId}/explore/debug`,
+                  },
+                ]}
+                disablePadding
+              />
+            ) : (
+              <HomeView study={study} variantTree={variantTree} />
+            )}
+            <FreezeStudy studyId={study.id} />
+          </Box>
+        </Box>
       )}
-    </Box>
+    />
   );
 }
 

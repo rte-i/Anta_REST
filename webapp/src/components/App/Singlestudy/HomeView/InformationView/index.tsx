@@ -12,26 +12,27 @@
  * This file is part of the Antares project.
  */
 
-import { useState } from "react";
-import { Paper, Button, Box, Divider } from "@mui/material";
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "react-i18next";
+import ViewWrapper from "@/components/common/page/ViewWrapper";
+import { copyStudy } from "@/services/api/studies";
+import { Box, Button, Divider } from "@mui/material";
 import type { AxiosError } from "axios";
-import type { StudyMetadata, VariantTree } from "../../../../../common/types";
+import { useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useNavigate } from "react-router-dom";
+import useEnqueueErrorSnackbar from "../../../../../hooks/useEnqueueErrorSnackbar";
+import { unarchiveStudy as callUnarchiveStudy } from "../../../../../services/api/study";
+import type { StudyMetadata, VariantTree } from "../../../../../types/types";
+import LaunchStudyDialog from "../../../shared/studies/dialogs/LaunchStudyDialog";
 import CreateVariantDialog from "./CreateVariantDialog";
 import LauncherHistory from "./LauncherHistory";
 import Notes from "./Notes";
-import LauncherDialog from "../../../Studies/LauncherDialog";
-import { copyStudy, unarchiveStudy as callUnarchiveStudy } from "../../../../../services/api/study";
-import useEnqueueErrorSnackbar from "../../../../../hooks/useEnqueueErrorSnackbar";
 
 interface Props {
-  study: StudyMetadata | undefined;
-  tree: VariantTree | undefined;
+  study: StudyMetadata;
+  variantTree: VariantTree;
 }
 
-function InformationView(props: Props) {
-  const { study, tree } = props;
+function InformationView({ study, variantTree }: Props) {
   const navigate = useNavigate();
   const [t] = useTranslation();
   const [openVariantModal, setOpenVariantModal] = useState<boolean>(false);
@@ -40,7 +41,11 @@ function InformationView(props: Props) {
 
   const importStudy = async (study: StudyMetadata) => {
     try {
-      await copyStudy(study.id, `${study.name} (${t("studies.copySuffix")})`, false);
+      await copyStudy({
+        studyId: study.id,
+        studyName: `${study.name} (${t("studies.copySuffix")})`,
+        withOutputs: false,
+      });
     } catch (e) {
       enqueueErrorSnackbar(t("studies.error.copyStudy"), e as AxiosError);
     }
@@ -58,59 +63,32 @@ function InformationView(props: Props) {
   };
 
   return (
-    <Paper
-      sx={{
-        width: "80%",
-        minWidth: "400px",
-        height: "90%",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "center",
-        px: 2,
-        py: 1,
-      }}
-    >
+    <ViewWrapper flex={{ gap: 2 }}>
       <Box
-        width="100%"
-        height="calc(100% - 40px)"
-        display="flex"
-        flexDirection="row"
-        justifyContent="center"
-        alignItems="center"
-        py={1.5}
+        sx={{
+          display: "flex",
+          overflow: "auto",
+          flex: 1,
+        }}
       >
         <LauncherHistory study={study} />
-        {study && <Notes study={study} />}
+        <Notes study={study} />
       </Box>
-      <Divider sx={{ width: "100%", height: "1px" }} />
-      <Box
-        width="100%"
-        flex="0 0 40px"
-        display="flex"
-        flexDirection="row"
-        justifyContent="space-between"
-        alignItems="flex-start"
-        py={1.5}
-      >
-        <Box display="flex" flexDirection="row" justifyContent="flex-start" alignItems="center">
+      <Divider />
+      <Box sx={{ display: "flex", gap: 2 }}>
+        <Box sx={{ display: "flex", gap: 2, flex: 1 }}>
           <Button
             variant="contained"
-            color="primary"
             onClick={() => {
-              if (study) {
-                navigate(`/studies/${study.id}/explore`);
-              }
+              navigate(`/studies/${study.id}/explore`);
             }}
           >
             {t("global.open")}
           </Button>
-          {study && !study.archived && (
+          {!study.archived && (
             <Button
-              variant="text"
-              color="primary"
+              variant="outlined"
               onClick={() => (study.managed ? setOpenVariantModal(true) : importStudy(study))}
-              sx={{ mx: 2 }}
             >
               {study.managed ? t("variants.createNewVariant") : t("studies.importcopy")}
             </Button>
@@ -118,34 +96,33 @@ function InformationView(props: Props) {
         </Box>
         <Button
           variant="contained"
-          color="primary"
           onClick={
-            study?.archived
+            study.archived
               ? () => {
                   unarchiveStudy(study);
                 }
               : () => setOpenLauncherModal(true)
           }
         >
-          {study?.archived ? t("global.unarchive") : t("global.launch")}
+          {study.archived ? t("global.unarchive") : t("global.launch")}
         </Button>
       </Box>
-      {study && tree && openVariantModal && (
+      {openVariantModal && (
         <CreateVariantDialog
           parentId={study.id}
           open={openVariantModal}
           onClose={() => setOpenVariantModal(false)}
-          tree={tree}
+          variantTree={variantTree}
         />
       )}
-      {study && openLauncherModal && (
-        <LauncherDialog
+      {openLauncherModal && (
+        <LaunchStudyDialog
           open={openLauncherModal}
           studyIds={[study.id]}
           onClose={() => setOpenLauncherModal(false)}
         />
       )}
-    </Paper>
+    </ViewWrapper>
   );
 }
 

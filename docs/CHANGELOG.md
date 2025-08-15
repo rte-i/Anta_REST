@@ -1,8 +1,259 @@
 Antares Web Changelog
 =====================
 
+v2.22.1 (2025-07-07)
+--------------------
+
+## What's Changed
+
+### Features
+
+* **thematic-trimming**: add variable `NPCAP HOURS` [`2568`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2568)
+
+### Bug fixes
+
+* **watcher**: watcher should not be started when not asked for [`2565`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2565)
+* **output**: dont scan whole output dir recursively [`2563`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2563)
+* **ui**: remove the column name from the copy on DataGrid [`2566`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2566)
+
+
+**Full Changelog**: https://github.com/AntaresSimulatorTeam/AntaREST/compare/v2.22.0...v2.22.1
+
+
+v2.22.0 (2025-06-25)
+--------------------
+
+## What's Changed
+
+### Features
+
+* **launcher**: support multiple launchers [`2466`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2466)
+* **ui-desktop**: show recursive scan checkbox only on desktop [`2494`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2494)
+* **desktop**: system workspaces [`2459`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2459)
+* **ui-study,ui-studies**: uniformize context menu [`2496`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2496)
+* **ui-study**: add copy dialog and rename action in context menu [`2514`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2514)
+* **ui-study**: add destination folder in copy dialog [`2516`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2516)
+* **output**: result aggregation as a task [`2485`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2485) ![Breaking change](https://img.shields.io/badge/-Breaking%20Change-red.svg)
+* **ui-study**: add outputs list in copy dialog [`2518`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2518)
+* **ui-debug**: move the save button on menu bar in JSON view [`2520`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2520)
+* **ui-debug**: update style of JSON view [`2521`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2521)
+* **version**: support Simulator version 9.2 [`2428`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2428) ![Breaking change](https://img.shields.io/badge/-Breaking%20Change-red.svg)
+* **study-tree,ui-study-tree**: preview studies not scanned yet [`2524`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2524)
+* **sts**: handle additional constraints files inside the tree [`2533`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2533)
+* **ui-studies**: update name and folder fields validation [`2534`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2534)
+
+### Bug fixes
+
+* **study**: rename variable for study copy [`2486`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2486) ![Breaking change](https://img.shields.io/badge/-Breaking%20Change-red.svg)
+* **launcher**: fix local launcher unit test [`2498`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2498)
+* **bc**: allow updates for bc with a name as an integer [`2497`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2497)
+* **ui-studies**: minor workspaces related fixes [`2499`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2499)
+* **desktop**: add missing name field to config.yml desktop template [`2503`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2503)
+* **lint**: remove obsolete `type: ignore` [`2510`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2510)
+* **study**: fix a bug when renaming study then archive and unarchive [`2517`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2517)
+* **link**: handle legacy commands [`2519`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2519)
+* **login**: prevent crash inside `/users` and `/groups` endpoints [`2525`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2525)
+* **launcher**: job owner launches the unarchiving task [`2526`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2526)
+* **output**: reduce memory consumption of output download [`2531`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2531)
+* **simulation**: allow study to be run with `expansion` mode [`2492`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2492)
+* **study-version**: bug parsing study version [`2535`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2535)
+* **results**: normalize `mode` output path segment [`2536`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2536)
+* **links**: allow legacy parsing for create link command [`2537`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2537)
+* **desktop**: clean deleted studies desktop mode [`2532`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2532)
+* **ui-bc**: cannot create BC on study < 8.7 [`2542`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2542)
+* **ui-study,model**: update delete message [`2538`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2538)
+* **ui-studies**: make study folder fields optional [`2544`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2544)
+* **imagrid**: use `economy` instead of `Economy` [`2548`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2548)
+* **groups**: distinguish between group and creation DTO [`2543`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2543)
+* **workers**: use gunicorn to autorepair load balanced workers [`2540`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2540)
+* **study**: copied study's outputs not downloadable [`2539`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2539)
+
+### Refactorings
+
+* **links**: introduce a DAO layer and improve classes design [`2454`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2454)
+* **thermal**: introduce the DAO layer for thermal clusters [`2502`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2502) ![Breaking change](https://img.shields.io/badge/-Breaking%20Change-red.svg)
+* **ui-tokens**: optimize the view [`2508`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2508)
+* **renewable**: introduce the DAO layer and improve classes design [`2509`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2509)
+* **bc**: introduce the DAO layer and improve classes design [`2523`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2523)
+
+**Full Changelog**: https://github.com/AntaresSimulatorTeam/AntaREST/compare/v2.21.0...v2.22.0
+
+v2.21.0 (2025-05-26)
+--------------------
+
+## What's Changed
+
+### Features
+
+* **ui-playlist**: update the dialog by [`2473`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2473)
+* **aggregation**: streamed aggregation by [`2484`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2484)
+* **workspaces**: forbid additional workspaces on desktop by [`2394`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2394)
+
+### Bug fixes
+
+* **scan**: use workspace and study path as key of missing studies [`2480`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2480)
+* **thermal**: return `hard coal` group in lower case [`2487`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2487)
+* **desktop**: allow users to create empty studies [`2488`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2488)
+* **bc**: fix issue when updating `time_step` via table-mode [`2489`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2489)
+* **ui-studytree**: minor fixes and improvement [`2477`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2477)
+* **scan**: properly filter default workspace [`2483`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2483)
+* **desktop**: use antares-solver_windows instead of rte-antares--installer-64bits [`2457`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2457)
+* **study**: fix a bug when deleting all tags [`2493`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2493)
+* **import**: reduce memory use when importing large files [`2500`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2500)
+* **user**: allow to fetch ldap users [`2501`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2501)
+* **ui-playlist**: some issues [`2495`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2495)
+
+### Performances
+* **db**: remove N+1 requests when getting users and groups list [`2490`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2490)
+
+### Refactorings
+* **login**: remove `RequestParameters` class [`2467`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2467)
+* **matrix**: remove `ContextServer` and simplify `UriResolverService` [`2463`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2463)
+
+**Full Changelog**: https://github.com/AntaresSimulatorTeam/AntaREST/compare/v2.20.0...v2.21.0
+
+
+v2.20.0 (2025-04-30)
+--------------------
+
+## What's Changed
+
+### Features
+
+* **ui-api, digest**: enhance `DigestDialog` and add dedicated endpoint for digest UI [`2240`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2240)
+* **matrices**: allow other formats for internal matrices storage [`2113`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2113)
+* **area**: move area command creation [`2322`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2322)
+* **ini**: allow custom parsers/serializers for ini options [`2332`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2332)
+* **matrix**: never return empty matrix [`2296`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2296)
+* **properties**: add two fields to area properties form [`2347`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2347)
+* **ui-matrix**: enable flexible row count configuration [`2345`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2345)
+* **xpansion**: create `remove_xpansion_configuration` command [`2361`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2361)
+* **renewable**: add update renewable cluster command [`2352`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2352)
+* **xpansion**: introduce `create_xpansion_configuration` command [`2366`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2366)
+* **st-storage**: add update st storage command [`2354`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2354)
+* **xpansion**: add `remove_xpansion_resource` command [`2368`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2368)
+* **ui**: update MUI theme [`2335`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2335)
+* **xpansion**: add `create_xpansion_resource` commands [`2371`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2371)
+* **thermal**: add update thermal cluster command [`2356`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2356)
+* **ui-matrix**: add `MatrixResize` allowing columns resize on matrices [`2340`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2340)
+* **xpansion**: add candidate commands [`2367`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2367)
+* **binding-constraints**: create UpdateConstraints command [`2274`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2274)
+* **hydro**: add update hydro management option command [`2374`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2374)
+* **xpansion**: add `update_xpansion_settings` command [`2393`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2393)
+* **area**: replace update config in table mode areas [`2350`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2350)
+* **adequacy_patch**: update default values in adequacy patch form, in english and french view [`2402`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2402)
+* **logs**: add task_id and user.id to logs [`2414`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2414)
+* **hydro**: add new endpoint to get hydro related properties for the whole study [`2420`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2420)
+* **variant_study**: copy variant as raw study [`2405`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2405)
+* **ui-studies**: display the study list in the tree even if folder list is loading [`2427`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2427)
+* **study**: copy study with specific path [`2439`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2439)
+* **ui-matrix**: add copy paste and keybinds support [`2441`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2441)
+* **study**: copy only selected outputs [`2447`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2447)
+* **aggregator_manager**: enable aggregation size on endpoint [`2451`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2451)
+* **matrix**: support matrices with headers inside the matrixstore [`2450`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2450)
+
+
+### Bug fixes
+
+* **all**: multiple warnings fix [`2318`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2318)
+* **explorer**: normalize folder path [`2329`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2329)
+* **commands**: fix error on command notifications [`2323`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2323)
+* **st-storage**: fix ST storage groups case for v8.6 [`2342`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2342)
+* **scan**: fix workspaces can't overlap nor be renamed [`2334`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2334)
+* **ui-debug**: treat 'file://*.json' files as JSON instead of unsupported [`2346`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2346)
+* **study-tree-ui**: add exist true filter to studies request [`2339`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2339)
+* **ini**: ignore case when performing update and delete of ini files [`2353`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2353)
+* **xpansion**: allow matrices normalization [`2369`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2369)
+* **matrix**: change headers inside GET /raw endpoint when formatted is False [`2375`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2375)
+* **all**: refactor the camel case model annotation [`2376`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2376)
+* **hydro_management**: fix read and write in hydro.ini [`2370`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2370)
+* **mypy**: change writing inside pandas `replace` method [`2391`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2391)
+* **ui-matrix**: prevent fill handle updates for read-only matrices [`2383`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2383)
+* **ui-digest**: conditionally render digest button based on synthesis availability [`2389`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2389)
+* **study**: allow creating old studies with new version format [`2400`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2400)
+* **perfs, variant**: avoid loading study from disk for snapshot generation [`2386`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2386)
+* **areas**: allow negative spread costs [`2407`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2407)
+* **bc**: allow terms writing in any case and allow area/cluster names in endpoint [`2406`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2406)
+* **adequacy_patch**: fix bad tooltip [`2415`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2415)
+* **study-tree-ui**: fix several bugs and major refactoring [`2348`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2348)
+* **adequacy-patch**: fix serialization issue inside the ini file [`2418`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2418)
+* **terms**: revert breaking change [`2421`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2421)
+* **ui-matrix**: disable resize on non-timeseries matrices [`2419`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2419)
+* **ui**: multiple new theme issues [`2422`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2422)
+* **db**: fix relationship issues inside tests [`2429`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2429)
+* **tests**: fix relative import issue [`2432`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2432)
+* **commands**: use ids inside newly introduced update commands [`2424`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2424)
+* **area**: fix bug on allocation and correlation views [`2434`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2434)
+* **variants**: don't raise Exeptions when deleting a variant [`2437`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2437)
+* **ui-adequacy-patch**: remove unwanted fields and fix display [`2436`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2436)
+* **ui**: theme issues [`2443`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2443)
+* **ui-studies**: folder filter hide all studies [`2445`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2445)
+* **raw**: raise Exception when modifying expansion folder inside variant [`2446`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2446)
+* **ui-storages**: disable resize on inflow matrix [`2442`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2442)
+* **ui-matrix**: disable keybinds on read-only matrices [`2453`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2453)
+* **ui-adq-patch**: fix display of `includeHurdleCostCsr` switch [`2458`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2458)
+* **ui-matrix**: ensure consistent column sizing when switching between matrices [`2461`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2461)
+* **aggregation**: allow aggregation for variants [`2462`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2462)
+* **ui-matrix**: add aggregates columns calculation on matrix resize [`2456`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2456)
+* **ui-digest**: make first column fixed [`2460`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2460)
+* **ui-clusters**: handle area/cluster navigation by properly updating URL segments [`2455`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2455)
+* **matrixstore**: ensure we can read legacy null matrix [`2465`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2465)
+* **ui-settings**: style issues in form dialogs [`2468`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2468)
+* **hydro**: allow negative values for hydro allocation coefficients [`2464`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2464)
+
+### Performances
+
+* **links**: improve drastically perfs for update links inside table-mode [`2381`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2381)
+* **ui-results**: prevent infinite rendering in results matrices [`2388`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2388)
+* **table-mode**: speed-up mass update for thermal clusters [`2416`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2416)
+* **table-mode**: speed-up mass update for renewable clusters [`2423`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2423)
+* **table-mode**: speed-up mass update for short term storages [`2425`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2425)
+
+### Chore
+
+* **group**: enforce lower case for item groups [`2333`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2333)
+* **simulator**: bump simulator v8.8 version inside Desktop app [`2355`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2355)
+* **deps**: use `antares-study-version` package for study creation [`2358`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2358)
+* **patch**: remove patch service [`2359`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2359)
+* **dev**: share pre-commit configuration for local dev [`2360`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2360)
+* **typing**: add TypeAlias where missing [`2401`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2401)
+* **config**: remove unused cache dict [`2404`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2404)
+* **ci**: remove ubuntu20 from the ci [`2426`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2426)
+* **tests**: remove useless zip and introduce new study fixtures [`2431`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2431)
+* **variant**: remove obsolete `execute_or_add_commands` method [`2438`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2438)
+* **outputs**: create a dedicated output service to separate concerns [`2448`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2448)
+
+
+### Refactorings
+
+* **ui-clusters**: update clusters group names to lowercase [`2341`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2341)
+* **all**: remove pydantic v1 dependencies [`2344`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2344)
+* **services**: fix wrong dependency from business to service [`2343`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2343)
+* **thermal**: improve classes design for thermal clusters [`2430`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2430)
+* **commands**: remove apply config [`2449`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2449)
+
+### Build
+
+* **lint**: use ruff instead of isort and black [`2349`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2349)
+
+
+### Tests
+
+* **sts, renewable**: add command dto unit tests [`2392`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2392)
+
+### Documentation
+
+* fix broken links and disable default expansion [`2435`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2435)
+* add some docstring to some important database classes [`2440`](https://github.com/AntaresSimulatorTeam/AntaREST/pull/2440)
+
+
+**Full Changelog**: https://github.com/AntaresSimulatorTeam/AntaREST/compare/v2.19.2...v2.20.0
+
+
 v2.19.2 (2025-03-17)
 --------------------
+
+## What's Changed
 
 ### Bug fixes
 

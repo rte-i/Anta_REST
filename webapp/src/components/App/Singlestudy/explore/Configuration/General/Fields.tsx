@@ -12,17 +12,28 @@
  * This file is part of the Antares project.
  */
 
-import { Box, Button, Divider } from "@mui/material";
-import { useTranslation } from "react-i18next";
+import OkDialog from "@/components/common/dialogs/OkDialog";
+import type { StudyMetadata } from "@/types/types";
 import SettingsIcon from "@mui/icons-material/Settings";
-import { useEffect } from "react";
+import { Box, Button, Divider } from "@mui/material";
 import * as RA from "ramda-adjunct";
+import { useEffect, useState } from "react";
 import type { Validate } from "react-hook-form";
+import { useTranslation } from "react-i18next";
+import BooleanFE from "../../../../../common/fieldEditors/BooleanFE";
+import NumberFE from "../../../../../common/fieldEditors/NumberFE";
 import SelectFE from "../../../../../common/fieldEditors/SelectFE";
+import StringFE from "../../../../../common/fieldEditors/StringFE";
 import SwitchFE from "../../../../../common/fieldEditors/SwitchFE";
+import Fieldset from "../../../../../common/Fieldset";
+import { useFormContextPlus } from "../../../../../common/Form";
+import ScenarioBuilderDialog from "./dialogs/ScenarioBuilderDialog";
+import ScenarioPlaylistDialog from "./dialogs/ScenarioPlaylistDialog";
+import ThematicTrimmingDialog from "./dialogs/ThematicTrimmingDialog";
+import { FieldWithButton } from "./styles";
 import {
-  BuildingMode,
   BUILDING_MODE_OPTIONS,
+  BuildingMode,
   FIRST_JANUARY_OPTIONS,
   MODE_OPTIONS,
   WEEK_OPTIONS,
@@ -30,21 +41,22 @@ import {
   type GeneralFormFields,
   type SetDialogStateType,
 } from "./utils";
-import BooleanFE from "../../../../../common/fieldEditors/BooleanFE";
-import { useFormContextPlus } from "../../../../../common/Form";
-import StringFE from "../../../../../common/fieldEditors/StringFE";
-import NumberFE from "../../../../../common/fieldEditors/NumberFE";
-import Fieldset from "../../../../../common/Fieldset";
-import { FieldWithButton } from "./styles";
 
 interface Props {
-  setDialog: React.Dispatch<React.SetStateAction<SetDialogStateType>>;
+  study: StudyMetadata;
 }
 
-function Fields(props: Props) {
-  const { setDialog } = props;
-  const [t] = useTranslation();
-  const { control, setValue, watch } = useFormContextPlus<GeneralFormFields>();
+function Fields({ study }: Props) {
+  const { t } = useTranslation();
+  const [dialog, setDialog] = useState<SetDialogStateType>("");
+
+  const {
+    control,
+    setValue,
+    watch,
+    formState: { defaultValues, dirtyFields },
+  } = useFormContextPlus<GeneralFormFields>();
+
   const [buildingMode, selectionMode, firstDay, lastDay, filtering, thematicTrimming] = watch([
     "buildingMode",
     "selectionMode",
@@ -110,9 +122,17 @@ function Fields(props: Props) {
     return value <= 50000 ? true : t("form.field.maxValue", { 0: 50000 });
   };
 
+  const handleCloseDialog = () => setDialog("");
+
   ////////////////////////////////////////////////////////////////
   // JSX
   ////////////////////////////////////////////////////////////////
+
+  const warningDialog = (
+    <OkDialog open alert="warning" maxWidth="xs" onOk={handleCloseDialog}>
+      {t("study.configuration.general.dialogWarning")}
+    </OkDialog>
+  );
 
   const thematicTrimmingButton = (
     <Button
@@ -132,11 +152,11 @@ function Fields(props: Props) {
           label={t("study.configuration.general.mode")}
           options={MODE_OPTIONS}
           control={control}
+          sx={{ minWidth: "250px" }}
         />
         <NumberFE
           name="firstDay"
           label={t("study.configuration.general.firstDay")}
-          variant="filled"
           control={control}
           rules={{
             deps: "lastDay",
@@ -146,7 +166,6 @@ function Fields(props: Props) {
         <NumberFE
           name="lastDay"
           label={t("study.configuration.general.lastDay")}
-          variant="filled"
           control={control}
           rules={{
             deps: "firstDay",
@@ -155,10 +174,10 @@ function Fields(props: Props) {
         />
       </Fieldset>
       <Fieldset legend={t("study.configuration.general.legend.calendar")}>
-        <StringFE name="horizon" label="Horizon" variant="filled" control={control} />
+        <StringFE name="horizon" label="Horizon" control={control} />
         <SelectFE
           name="firstMonth"
-          label={t("study.configuration.general.year")}
+          label={t("global.year")}
           options={YEAR_OPTIONS}
           control={control}
         />
@@ -176,7 +195,6 @@ function Fields(props: Props) {
         />
         <SwitchFE
           name="leapYear"
-          sx={{ flexBasis: "100%" }}
           label={t("study.configuration.general.leapYear")}
           control={control}
           rules={{
@@ -184,7 +202,7 @@ function Fields(props: Props) {
           }}
         />
       </Fieldset>
-      <Box sx={{ display: "flex" }}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2 }}>
         <Fieldset
           legend={t("study.configuration.general.legend.monteCarloScenarios")}
           sx={{
@@ -197,7 +215,6 @@ function Fields(props: Props) {
           <NumberFE
             name="nbYears"
             label={t("study.configuration.general.nbYears")}
-            variant="filled"
             control={control}
             rules={{
               validate: handleNbYearsValidation,
@@ -236,7 +253,7 @@ function Fields(props: Props) {
             </Button>
           </FieldWithButton>
         </Fieldset>
-        <Divider orientation="vertical" flexItem sx={{ mx: 2 }} />
+        <Divider orientation="vertical" flexItem />
         <Fieldset
           legend={t("study.configuration.general.legend.outputProfile")}
           sx={{
@@ -293,6 +310,24 @@ function Fields(props: Props) {
           )}
         </Fieldset>
       </Box>
+      {dialog === "scenarioBuilder" &&
+        (defaultValues?.buildingMode === BuildingMode.Custom && !dirtyFields.nbYears ? (
+          <ScenarioBuilderDialog open study={study} onClose={handleCloseDialog} />
+        ) : (
+          warningDialog
+        ))}
+      {dialog === "scenarioPlaylist" &&
+        (defaultValues?.selectionMode && !dirtyFields.nbYears ? (
+          <ScenarioPlaylistDialog open study={study} onClose={handleCloseDialog} />
+        ) : (
+          warningDialog
+        ))}
+      {dialog === "thematicTrimming" &&
+        (defaultValues?.thematicTrimming ? (
+          <ThematicTrimmingDialog open study={study} onClose={handleCloseDialog} />
+        ) : (
+          warningDialog
+        ))}
     </>
   );
 }

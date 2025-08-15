@@ -17,10 +17,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from antarest.matrixstore.service import ISimpleMatrixService
-from antarest.matrixstore.uri_resolver_service import UriResolverService
 from antarest.study.storage.rawstudy.model.filesystem.config.model import FileStudyTreeConfig
-from antarest.study.storage.rawstudy.model.filesystem.context import ContextServer
 from antarest.study.storage.rawstudy.model.filesystem.matrix.matrix import MatrixFrequency
 from antarest.study.storage.rawstudy.model.filesystem.matrix.output_series_matrix import AreaOutputSeriesMatrix
 from antarest.study.storage.rawstudy.model.filesystem.root.output.simulation.mode.common import area
@@ -42,9 +39,6 @@ class TestOutputSimulationAreaItem:
             name = Path(file).stem
             splitted = name.split("-")
             expected[name] = {"freq": MatrixFrequency(splitted[len(splitted) - 1])}
-        matrix = Mock(spec=ISimpleMatrixService)
-        resolver = Mock(spec=UriResolverService)
-        context = ContextServer(matrix=matrix, resolver=resolver)
         study_id = str(uuid.uuid4())
         config = FileStudyTreeConfig(
             study_path=Path("path/to/study"),
@@ -54,12 +48,14 @@ class TestOutputSimulationAreaItem:
             areas={},
         )
 
-        node = area.OutputSimulationAreaItem(context=context, config=config, area="fr")
+        node = area.OutputSimulationAreaItem(matrix_mapper=Mock(), config=config, area="fr")
         actual = node.build()
 
         # check the result
-        value: AreaOutputSeriesMatrix
-        actual_obj = {key: {"freq": value.freq} for key, value in actual.items()}
+        actual_obj: dict[str, dict[str, MatrixFrequency]] = {}
+        for key, value in actual.items():
+            assert isinstance(value, AreaOutputSeriesMatrix)
+            actual_obj[key] = {"freq": value.freq}
         assert actual_obj == expected
 
         new_config = FileStudyTreeConfig(
@@ -70,9 +66,12 @@ class TestOutputSimulationAreaItem:
             areas={},
         )
 
-        new_node = area.OutputSimulationAreaItem(context=context, config=new_config, area="fr")
+        new_node = area.OutputSimulationAreaItem(matrix_mapper=Mock(), config=new_config, area="fr")
         new_actual = new_node.build()
         # check the result
-        actual_obj = {key: {"freq": value.freq} for key, value in new_actual.items()}
+        actual_obj: dict[str, dict[str, MatrixFrequency]] = {}
+        for key, value in new_actual.items():
+            assert isinstance(value, AreaOutputSeriesMatrix)
+            actual_obj[key] = {"freq": value.freq}
 
         assert actual_obj == expected

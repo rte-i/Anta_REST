@@ -14,37 +14,26 @@ from pathlib import Path
 from typing import List, Optional
 from unittest.mock import Mock
 
-import numpy as np
-import pandas as pd  # type: ignore
-from numpy import typing as npt
+import pandas as pd
 
-from antarest.core.model import JSON
+from antarest.matrixstore.matrix_uri_mapper import MatrixUriMapper
+from antarest.study.model import STUDY_VERSION_8_8
 from antarest.study.storage.rawstudy.model.filesystem.config.model import FileStudyTreeConfig
-from antarest.study.storage.rawstudy.model.filesystem.context import ContextServer
 from antarest.study.storage.rawstudy.model.filesystem.matrix.matrix import MatrixFrequency, MatrixNode
 
-MOCK_MATRIX_JSON = {
-    "index": ["1", "2"],
-    "columns": ["a", "b"],
-    "data": [[1, 2], [3, 4]],
-}
-
-MOCK_MATRIX_DTO = [[1, 2], [3, 4]]
+MOCK_MATRIX = pd.DataFrame([[1, 2], [3, 4]])
 
 
 class MockMatrixNode(MatrixNode):
-    def __init__(self, context: ContextServer, config: FileStudyTreeConfig) -> None:
+    def __init__(self, matrix_mapper: MatrixUriMapper, config: FileStudyTreeConfig) -> None:
         super().__init__(
             config=config,
-            context=context,
+            matrix_mapper=matrix_mapper,
             freq=MatrixFrequency.ANNUAL,
         )
 
-    def parse_as_json(self, file_path: Optional[Path] = None) -> JSON:
-        return MOCK_MATRIX_JSON
-
-    def get_default_empty_matrix(self) -> Optional[npt.NDArray[np.float64]]:
-        pass
+    def parse_as_dataframe(self, file_path: Optional[Path] = None) -> pd.DataFrame:
+        return MOCK_MATRIX
 
     def check_errors(self, data: str, url: Optional[List[str]] = None, raising: bool = False) -> List[str]:
         pass  # not used
@@ -58,12 +47,11 @@ class TestMatrixNode:
         matrix_service = Mock()
         matrix_service.create.return_value = "my-id"
 
-        resolver = Mock()
-        resolver.build_matrix_uri.return_value = "matrix://my-id"
+        matrix_mapper = MatrixUriMapper(matrix_service)
 
         node = MockMatrixNode(
-            context=ContextServer(matrix=matrix_service, resolver=resolver),
-            config=FileStudyTreeConfig(study_path=file, path=file, study_id="mi-id", version=-1),
+            matrix_mapper=matrix_mapper,
+            config=FileStudyTreeConfig(study_path=file, path=file, study_id="mi-id", version=STUDY_VERSION_8_8),
         )
 
         node.normalize()
@@ -71,8 +59,10 @@ class TestMatrixNode:
         # check the result
         assert node.get_link_path().read_text() == "matrix://my-id"
         assert not file.exists()
-        matrix_service.create.assert_called_once_with(MOCK_MATRIX_DTO)
-        resolver.build_matrix_uri.assert_called_once_with("my-id")
+        matrix_service.create.assert_called_once()
+        args = matrix_service.create.call_args.args
+        assert len(args) == 1
+        assert MOCK_MATRIX.equals(args[0])
 
     def test_denormalize(self, tmp_path: Path):
         file = tmp_path / "matrix.json"
@@ -81,11 +71,11 @@ class TestMatrixNode:
         link.write_text("my-id")
 
         resolver = Mock()
-        resolver.resolve.return_value = MOCK_MATRIX_JSON
+        resolver.get_matrix.return_value = MOCK_MATRIX
 
         node = MockMatrixNode(
-            context=ContextServer(matrix=Mock(), resolver=resolver),
-            config=FileStudyTreeConfig(study_path=file, path=file, study_id="mi-id", version=-1),
+            matrix_mapper=resolver,
+            config=FileStudyTreeConfig(study_path=file, path=file, study_id="mi-id", version=STUDY_VERSION_8_8),
         )
 
         node.denormalize()
@@ -93,4 +83,4 @@ class TestMatrixNode:
         # check the result
         assert not link.exists()
         actual = pd.read_csv(file, sep="\t", header=None)
-        assert actual.values.tolist() == MOCK_MATRIX_JSON["data"]
+        assert actual.equals(MOCK_MATRIX)

@@ -12,13 +12,15 @@
 
 import pytest
 
-from antarest.core.serde.ini_reader import IniReader
+from antarest.core.serde.ini_reader import read_ini
+from antarest.study.business.model.binding_constraint_model import ClusterTerm, ConstraintTerm, LinkTerm
+from antarest.study.business.model.thermal_cluster_model import ThermalClusterCreation
+from antarest.study.dao.file.file_study_constraint_dao import update_matrices_names
 from antarest.study.storage.rawstudy.model.filesystem.config.binding_constraint import (
     BindingConstraintFrequency,
     BindingConstraintOperator,
 )
 from antarest.study.storage.rawstudy.model.filesystem.config.identifier import transform_name_to_id
-from antarest.study.storage.rawstudy.model.filesystem.config.thermal import ThermalProperties
 from antarest.study.storage.rawstudy.model.filesystem.factory import FileStudy
 from antarest.study.storage.variantstudy.business.matrix_constants.binding_constraint.series_after_v87 import (
     default_bc_weekly_daily as default_bc_weekly_daily_870,
@@ -30,208 +32,229 @@ from antarest.study.storage.variantstudy.model.command.create_area import Create
 from antarest.study.storage.variantstudy.model.command.create_binding_constraint import CreateBindingConstraint
 from antarest.study.storage.variantstudy.model.command.create_cluster import CreateCluster
 from antarest.study.storage.variantstudy.model.command.create_link import CreateLink
-from antarest.study.storage.variantstudy.model.command.remove_binding_constraint import RemoveBindingConstraint
+from antarest.study.storage.variantstudy.model.command.remove_multiple_binding_constraints import (
+    RemoveMultipleBindingConstraints,
+)
 from antarest.study.storage.variantstudy.model.command.update_binding_constraint import (
     UpdateBindingConstraint,
-    update_matrices_names,
 )
 from antarest.study.storage.variantstudy.model.command.update_scenario_builder import UpdateScenarioBuilder
 from antarest.study.storage.variantstudy.model.command_context import CommandContext
 
 
 # noinspection SpellCheckingInspection
-@pytest.mark.parametrize("empty_study", ["empty_study_720.zip", "empty_study_870.zip"], indirect=True)
-def test_manage_binding_constraint(empty_study: FileStudy, command_context: CommandContext):
-    study_path = empty_study.config.study_path
-    study_version = empty_study.config.version
+def test_manage_binding_constraint(
+    empty_study_720: FileStudy, empty_study_870: FileStudy, command_context: CommandContext
+):
+    for empty_study in [empty_study_720, empty_study_870]:
+        study_path = empty_study.config.study_path
+        study_version = empty_study.config.version
 
-    area1 = "area1"
-    area2 = "area2"
-    cluster = "cluster"
-    CreateArea(area_name=area1, command_context=command_context, study_version=study_version).apply(empty_study)
-    CreateArea(area_name=area2, command_context=command_context, study_version=study_version).apply(empty_study)
-    CreateLink(area1=area1, area2=area2, command_context=command_context, study_version=study_version).apply(
-        empty_study
-    )
-    CreateCluster(
-        area_id=area1,
-        parameters=ThermalProperties(name=cluster),
-        command_context=command_context,
-        study_version=study_version,
-    ).apply(empty_study)
+        area1 = "area1"
+        area2 = "area2"
+        cluster = "cluster"
+        CreateArea(area_name=area1, command_context=command_context, study_version=study_version).apply(empty_study)
+        CreateArea(area_name=area2, command_context=command_context, study_version=study_version).apply(empty_study)
+        CreateLink(area1=area1, area2=area2, command_context=command_context, study_version=study_version).apply(
+            empty_study
+        )
+        CreateCluster(
+            area_id=area1,
+            parameters=ThermalClusterCreation(name=cluster),
+            command_context=command_context,
+            study_version=study_version,
+        ).apply(empty_study)
 
-    output = CreateBindingConstraint(
-        name="BD 1",
-        time_step=BindingConstraintFrequency.HOURLY,
-        operator=BindingConstraintOperator.LESS,
-        coeffs={"area1%area2": [800, 30]},
-        comments="Hello",
-        command_context=command_context,
-        study_version=study_version,
-    ).apply(empty_study)
-    assert output.status, output.message
-
-    output = CreateBindingConstraint(
-        name="BD 2",
-        enabled=False,
-        time_step=BindingConstraintFrequency.DAILY,
-        operator=BindingConstraintOperator.BOTH,
-        coeffs={"area1.cluster": [50]},
-        command_context=command_context,
-        study_version=study_version,
-    ).apply(empty_study)
-    assert output.status, output.message
-
-    if empty_study.config.version < 870:
-        matrix_links = ["bd 1.txt.link", "bd 2.txt.link"]
-    else:
-        matrix_links = [
-            # fmt: off
-            "bd 1_lt.txt.link",
-            "bd 2_lt.txt.link",
-            "bd 2_gt.txt.link",
-            # fmt: on
-        ]
-    for matrix_link in matrix_links:
-        link_path = study_path / f"input/bindingconstraints/{matrix_link}"
-        assert link_path.exists(), f"Missing matrix link: {matrix_link!r}"
-
-    cfg_path = study_path / "input/bindingconstraints/bindingconstraints.ini"
-    bd_config = IniReader().read(cfg_path)
-
-    expected_bd_1 = {
-        "name": "BD 1",
-        "id": "bd 1",
-        "enabled": True,
-        "comments": "Hello",
-        "area1%area2": "800.0%30",
-        "operator": "less",
-        "type": "hourly",
-    }
-    expected_bd_2 = {
-        "name": "BD 2",
-        "id": "bd 2",
-        "enabled": False,
-        "comments": "",
-        "area1.cluster": 50.0,
-        "operator": "both",
-        "type": "daily",
-    }
-    if study_version >= 830:
-        expected_bd_1["filter-year-by-year"] = ""
-        expected_bd_1["filter-synthesis"] = ""
-        expected_bd_2["filter-year-by-year"] = ""
-        expected_bd_2["filter-synthesis"] = ""
-    if study_version >= 870:
-        expected_bd_1["group"] = "default"
-        expected_bd_2["group"] = "default"
-
-    assert bd_config.get("0") == expected_bd_1
-    assert bd_config.get("1") == expected_bd_2
-
-    if study_version < 870:
-        weekly_values = default_bc_weekly_daily.tolist()
-        values = weekly_values
-        less_term_matrix = None
-        greater_term_matrix = None
-    else:
-        weekly_values = default_bc_weekly_daily_870.tolist()
-        values = None
-        less_term_matrix = weekly_values
-        greater_term_matrix = weekly_values
-
-    output = UpdateBindingConstraint(
-        id="bd 1",
-        enabled=False,
-        time_step=BindingConstraintFrequency.WEEKLY,
-        operator=BindingConstraintOperator.BOTH,
-        coeffs={"area1%area2": [800, 30]},
-        values=values,
-        less_term_matrix=less_term_matrix,
-        greater_term_matrix=greater_term_matrix,
-        command_context=command_context,
-        study_version=study_version,
-    ).apply(empty_study)
-    assert output.status, output.message
-
-    bd_config = IniReader().read(cfg_path)
-    expected_bd_1 = {
-        "name": "BD 1",
-        "id": "bd 1",
-        "enabled": False,
-        "comments": "Hello",  # comments are not updated
-        "area1%area2": "800.0%30",
-        "operator": "both",
-        "type": "weekly",
-    }
-    if study_version >= 830:
-        expected_bd_1["filter-year-by-year"] = ""
-        expected_bd_1["filter-synthesis"] = ""
-    if study_version >= 870:
-        expected_bd_1["group"] = "default"
-    assert bd_config.get("0") == expected_bd_1
-
-    if study_version >= 870:
-        # Add scenario builder data
-        output = UpdateScenarioBuilder(
-            data={"Default Ruleset": {"bc,default,0": 1}}, command_context=command_context, study_version=study_version
-        ).apply(study_data=empty_study)
+        output = CreateBindingConstraint(
+            **{
+                "parameters": {
+                    "name": "BD 1",
+                    "time_step": BindingConstraintFrequency.HOURLY,
+                    "operator": BindingConstraintOperator.LESS,
+                    "terms": [ConstraintTerm(weight=800, offset=30, data=LinkTerm(area1=area1, area2=area2))],
+                    "comments": "Hello",
+                },
+                "matrices": {},
+                "command_context": command_context,
+                "study_version": study_version,
+            }
+        ).apply(empty_study)
         assert output.status, output.message
 
-    output = RemoveBindingConstraint(id="bd 1", command_context=command_context, study_version=study_version).apply(
-        empty_study
-    )
-    assert output.status, output.message
+        output = CreateBindingConstraint(
+            **{
+                "parameters": {
+                    "name": "BD 2",
+                    "enabled": False,
+                    "time_step": BindingConstraintFrequency.DAILY,
+                    "operator": BindingConstraintOperator.BOTH,
+                    "terms": [ConstraintTerm(weight=50, data=ClusterTerm(area=area1, cluster=cluster))],
+                },
+                "matrices": {},
+                "command_context": command_context,
+                "study_version": study_version,
+            }
+        ).apply(empty_study)
+        assert output.status, output.message
 
-    if study_version >= 870:
-        # Check that the scenario builder is not yet updated, because "BD 2" is still present
-        rulesets = empty_study.tree.get(["settings", "scenariobuilder"])
-        assert rulesets == {"Default Ruleset": {"bc,default,0": 1}}
-
-    for matrix_link in matrix_links:
-        link_path = study_path / f"input/bindingconstraints/{matrix_link}"
-        if matrix_link.startswith("bd 1"):
-            assert not link_path.exists(), f"Matrix link not removed: {matrix_link!r}"
-        elif matrix_link.startswith("bd 2"):
-            assert link_path.exists(), f"Matrix link removed: {matrix_link!r}"
+        if empty_study.config.version < 870:
+            matrix_links = ["bd 1.txt.link", "bd 2.txt.link"]
         else:
-            raise NotImplementedError(f"Unexpected matrix link: {matrix_link!r}")
+            matrix_links = [
+                # fmt: off
+                "bd 1_lt.txt.link",
+                "bd 2_lt.txt.link",
+                "bd 2_gt.txt.link",
+                # fmt: on
+            ]
+        for matrix_link in matrix_links:
+            link_path = study_path / f"input/bindingconstraints/{matrix_link}"
+            assert link_path.exists(), f"Missing matrix link: {matrix_link!r}"
 
-    bd_config = IniReader().read(cfg_path)
-    assert len(bd_config) == 1
-    expected_bd_2 = {
-        "name": "BD 2",
-        "id": "bd 2",
-        "enabled": False,
-        "area1.cluster": 50.0,
-        "comments": "",
-        "operator": "both",
-        "type": "daily",
-    }
-    if study_version >= 830:
-        expected_bd_2["filter-year-by-year"] = ""
-        expected_bd_2["filter-synthesis"] = ""
-    if study_version >= 870:
-        expected_bd_2["group"] = "default"
-    assert bd_config.get("0") == expected_bd_2
+        cfg_path = study_path / "input/bindingconstraints/bindingconstraints.ini"
+        bd_config = read_ini(cfg_path)
 
-    output = RemoveBindingConstraint(id="bd 2", command_context=command_context, study_version=study_version).apply(
-        empty_study
-    )
-    assert output.status, output.message
+        expected_bd_1 = {
+            "name": "BD 1",
+            "id": "bd 1",
+            "enabled": True,
+            "comments": "Hello",
+            "area1%area2": "800.0%30",
+            "operator": "less",
+            "type": "hourly",
+        }
+        expected_bd_2 = {
+            "name": "BD 2",
+            "id": "bd 2",
+            "enabled": False,
+            "comments": "",
+            "area1.cluster": 50.0,
+            "operator": "both",
+            "type": "daily",
+        }
+        if study_version >= 830:
+            expected_bd_1["filter-year-by-year"] = ""
+            expected_bd_1["filter-synthesis"] = ""
+            expected_bd_2["filter-year-by-year"] = ""
+            expected_bd_2["filter-synthesis"] = ""
+        if study_version >= 870:
+            expected_bd_1["group"] = "default"
+            expected_bd_2["group"] = "default"
 
-    if study_version >= 870:
-        # Check that the scenario builder is updated
-        rulesets = empty_study.tree.get(["settings", "scenariobuilder"])
-        assert rulesets == {"Default Ruleset": {}}
+        assert bd_config.get("0") == expected_bd_1
+        assert bd_config.get("1") == expected_bd_2
+
+        if study_version < 870:
+            weekly_values = default_bc_weekly_daily.tolist()
+            values = weekly_values
+            less_term_matrix = None
+            greater_term_matrix = None
+        else:
+            weekly_values = default_bc_weekly_daily_870.tolist()
+            values = None
+            less_term_matrix = weekly_values
+            greater_term_matrix = weekly_values
+
+        output = UpdateBindingConstraint(
+            **{
+                "id": "bd 1",
+                "parameters": {
+                    "enabled": False,
+                    "time_step": BindingConstraintFrequency.WEEKLY,
+                    "operator": BindingConstraintOperator.BOTH,
+                    "terms": [ConstraintTerm(weight=800, offset=30, data=LinkTerm(area1=area1, area2=area2))],
+                },
+                "matrices": {
+                    "values": values,
+                    "less_term_matrix": less_term_matrix,
+                    "greater_term_matrix": greater_term_matrix,
+                },
+                "command_context": command_context,
+                "study_version": study_version,
+            }
+        ).apply(empty_study)
+        assert output.status, output.message
+
+        bd_config = read_ini(cfg_path)
+        expected_bd_1 = {
+            "name": "BD 1",
+            "id": "bd 1",
+            "enabled": False,
+            "comments": "Hello",  # comments are not updated
+            "area1%area2": "800.0%30",
+            "operator": "both",
+            "type": "weekly",
+        }
+        if study_version >= 830:
+            expected_bd_1["filter-year-by-year"] = ""
+            expected_bd_1["filter-synthesis"] = ""
+        if study_version >= 870:
+            expected_bd_1["group"] = "default"
+        assert bd_config.get("0") == expected_bd_1
+
+        if study_version >= 870:
+            # Add scenario builder data
+            output = UpdateScenarioBuilder(
+                data={"Default Ruleset": {"bc,default,0": 1}},
+                command_context=command_context,
+                study_version=study_version,
+            ).apply(study_data=empty_study)
+            assert output.status, output.message
+
+        output = RemoveMultipleBindingConstraints(
+            id="bd 1", command_context=command_context, study_version=study_version
+        ).apply(empty_study)  # Ensures we're able to handle legacy command
+        assert output.status, output.message
+
+        if study_version >= 870:
+            # Check that the scenario builder is not yet updated, because "BD 2" is still present
+            rulesets = empty_study.tree.get(["settings", "scenariobuilder"])
+            assert rulesets == {"Default Ruleset": {"bc,default,0": 1}}
+
+        for matrix_link in matrix_links:
+            link_path = study_path / f"input/bindingconstraints/{matrix_link}"
+            if matrix_link.startswith("bd 1"):
+                assert not link_path.exists(), f"Matrix link not removed: {matrix_link!r}"
+            elif matrix_link.startswith("bd 2"):
+                assert link_path.exists(), f"Matrix link removed: {matrix_link!r}"
+            else:
+                raise NotImplementedError(f"Unexpected matrix link: {matrix_link!r}")
+
+        bd_config = read_ini(cfg_path)
+        assert len(bd_config) == 1
+        expected_bd_2 = {
+            "name": "BD 2",
+            "id": "bd 2",
+            "enabled": False,
+            "area1.cluster": 50.0,
+            "comments": "",
+            "operator": "both",
+            "type": "daily",
+        }
+        if study_version >= 830:
+            expected_bd_2["filter-year-by-year"] = ""
+            expected_bd_2["filter-synthesis"] = ""
+        if study_version >= 870:
+            expected_bd_2["group"] = "default"
+        assert bd_config.get("0") == expected_bd_2
+
+        output = RemoveMultipleBindingConstraints(
+            id="bd 2", command_context=command_context, study_version=study_version
+        ).apply(empty_study)
+        assert output.status, output.message
+
+        if study_version >= 870:
+            # Check that the scenario builder is updated
+            rulesets = empty_study.tree.get(["settings", "scenariobuilder"])
+            assert rulesets == {"Default Ruleset": {}}
 
 
-@pytest.mark.parametrize("empty_study", ["empty_study_870.zip"], indirect=True)
-def test_scenario_builder(empty_study: FileStudy, command_context: CommandContext):
+def test_scenario_builder(empty_study_870: FileStudy, command_context: CommandContext):
     """
     Test that the scenario builder is updated when a binding constraint group is renamed or removed
     """
     # This test requires a study with version >= 870, which support "scenarised" binding constraints.
+    empty_study = empty_study_870
     study_version = empty_study.config.version
     assert study_version >= 870
 
@@ -246,19 +269,23 @@ def test_scenario_builder(empty_study: FileStudy, command_context: CommandContex
         area1=areas["Area X"], area2=areas["Area Y"], command_context=command_context, study_version=study_version
     ).apply(empty_study)
     assert output.status, output.message
-    link_id = f"{areas['Area X']}%{areas['Area Y']}"
 
     # Create a binding constraint in a specific group:
     bc_group = "Group 1"
     output = CreateBindingConstraint(
-        name="BD 1",
-        enabled=False,
-        time_step=BindingConstraintFrequency.DAILY,
-        operator=BindingConstraintOperator.BOTH,
-        coeffs={link_id: [0.3]},
-        group=bc_group,
-        command_context=command_context,
-        study_version=study_version,
+        **{
+            "parameters": {
+                "name": "BD 1",
+                "enabled": False,
+                "time_step": BindingConstraintFrequency.DAILY,
+                "operator": BindingConstraintOperator.BOTH,
+                "group": bc_group,
+                "terms": [ConstraintTerm(weight=0.3, data=LinkTerm(area1="area x", area2="area y"))],
+            },
+            "matrices": {},
+            "command_context": command_context,
+            "study_version": study_version,
+        }
     ).apply(empty_study)
     assert output.status, output.message
 
@@ -274,7 +301,13 @@ def test_scenario_builder(empty_study: FileStudy, command_context: CommandContex
     # and a rule in the scenario builder for this group.
     # If we update the group name in the BC, the scenario builder should be updated
     output = UpdateBindingConstraint(
-        id="bd 1", group="Group 2", command_context=command_context, study_version=study_version
+        **{
+            "id": "bd 1",
+            "parameters": {"group": "Group 2"},
+            "matrices": {},
+            "command_context": command_context,
+            "study_version": study_version,
+        }
     ).apply(empty_study)
     assert output.status, output.message
 
@@ -304,13 +337,13 @@ def test_scenario_builder(empty_study: FileStudy, command_context: CommandContex
         (BindingConstraintOperator.EQUAL, BindingConstraintOperator.EQUAL),
     ],
 )
-@pytest.mark.parametrize("empty_study", ["empty_study_870.zip"], indirect=True)
 def test__update_matrices_names(
-    empty_study: FileStudy,
+    empty_study_870: FileStudy,
     command_context: CommandContext,
     existing_operator: BindingConstraintOperator,
     new_operator: BindingConstraintOperator,
 ):
+    empty_study = empty_study_870
     study_path = empty_study.config.study_path
     study_version = empty_study.config.version
 
@@ -333,19 +366,24 @@ def test__update_matrices_names(
     )
     CreateCluster(
         area_id=area1,
-        parameters=ThermalProperties(name=cluster),
+        parameters=ThermalClusterCreation(name=cluster),
         command_context=command_context,
         study_version=study_version,
     ).apply(empty_study)
 
     # create a binding constraint
-    _ = CreateBindingConstraint(
-        name="BD_RENAME_MATRICES",
-        time_step=BindingConstraintFrequency.HOURLY,
-        operator=existing_operator,
-        coeffs={"area1%area2": [800, 30]},
-        command_context=command_context,
-        study_version=study_version,
+    CreateBindingConstraint(
+        **{
+            "parameters": {
+                "name": "BD_RENAME_MATRICES",
+                "time_step": BindingConstraintFrequency.HOURLY,
+                "operator": existing_operator,
+                "terms": [ConstraintTerm(weight=800, offset=30, data=LinkTerm(area1="area1", area2="area2"))],
+            },
+            "matrices": {},
+            "command_context": command_context,
+            "study_version": study_version,
+        }
     ).apply(empty_study)
 
     # check that the matrices are created
@@ -379,3 +417,38 @@ def test__update_matrices_names(
     for matrix_link in superfluous_matrices:
         link_path = study_path / f"input/bindingconstraints/{matrix_link}"
         assert not link_path.exists(), f"Superfluous matrix link: {matrix_link!r}"
+
+
+def test_update_bc_with_an_integer_name(empty_study_870: FileStudy, command_context: CommandContext):
+    study = empty_study_870
+    study_version = study.config.version
+
+    output = CreateBindingConstraint(
+        **{
+            "parameters": {"name": "111"},
+            "matrices": {},
+            "command_context": command_context,
+            "study_version": study_version,
+        }
+    ).apply(study)
+    assert output.status, output.message
+
+    ini_content = study.tree.get(["input", "bindingconstraints", "bindingconstraints"])
+    # Ensures the id is read as a string
+    assert ini_content["0"]["id"] == "111"
+
+    # Updates any properties of the BC
+    output = UpdateBindingConstraint(
+        **{
+            "id": "111",
+            "parameters": {"comments": "Hello"},
+            "matrices": {},
+            "command_context": command_context,
+            "study_version": study_version,
+        }
+    ).apply(study)
+
+    # Ensures the update succeeded
+    assert output.status, output.message
+    ini_content = study.tree.get(["input", "bindingconstraints", "bindingconstraints"])
+    assert ini_content["0"]["comments"] == "Hello"

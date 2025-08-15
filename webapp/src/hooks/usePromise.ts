@@ -12,7 +12,8 @@
  * This file is part of the Antares project.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { toError } from "@/utils/fnUtils";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { isDependencyList } from "../utils/reactUtils";
 
 export const PromiseStatus = {
@@ -31,7 +32,7 @@ export interface UsePromiseResponse<T> {
   isFulfilled: boolean;
   isRejected: boolean;
   error: Error | string | undefined;
-  reload: () => void;
+  reload: () => Promise<T>;
 }
 
 export interface UsePromiseParams {
@@ -50,11 +51,25 @@ function usePromise<T>(fn: () => Promise<T>, params?: DepsOrParams): UsePromiseR
   const { deps = [], resetDataOnReload, resetErrorOnReload } = toParams(params);
   const [data, setData] = useState<T>();
   const [status, setStatus] = useState<TPromiseStatus>(PromiseStatus.Idle);
-  const [error, setError] = useState<Error | string | undefined>();
+  const [error, setError] = useState<Error | undefined>();
   const [reloadCount, setReloadCount] = useState(0);
-  const reload = useCallback(() => setReloadCount((prev) => prev + 1), []);
+
+  const reloadPromise = useRef<{
+    resolve: (data: T) => void;
+    reject: (err: typeof error) => void;
+  } | null>(null);
+
+  const reload = useCallback(() => {
+    setReloadCount((prev) => prev + 1);
+
+    return new Promise<T>((resolve, reject) => {
+      reloadPromise.current = { resolve, reject };
+    });
+  }, []);
 
   useEffect(() => {
+    let active = true; // Prevent race condition
+
     setStatus(PromiseStatus.Pending);
 
     // Reset
@@ -67,13 +82,29 @@ function usePromise<T>(fn: () => Promise<T>, params?: DepsOrParams): UsePromiseR
 
     fn()
       .then((res) => {
-        setData(res);
-        setStatus(PromiseStatus.Fulfilled);
+        if (active) {
+          setData(res);
+          setStatus(PromiseStatus.Fulfilled);
+          reloadPromise.current?.resolve(res);
+        }
       })
       .catch((err) => {
-        setError(err);
-        setStatus(PromiseStatus.Rejected);
+        if (active) {
+          const errObj = toError(err);
+          setError(errObj);
+          setStatus(PromiseStatus.Rejected);
+          reloadPromise.current?.reject(errObj);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          reloadPromise.current = null;
+        }
       });
+
+    return () => {
+      active = false;
+    };
   }, [reloadCount, ...deps]);
 
   return {

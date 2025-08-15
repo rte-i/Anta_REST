@@ -10,14 +10,13 @@
 #
 # This file is part of the Antares project.
 
-from typing import List
 
-from antarest.matrixstore.model import MatrixData
+import pandas as pd
 
-NULL_MATRIX: List[List[MatrixData]] = [[]]
-NULL_SCENARIO_MATRIX: List[List[MatrixData]] = [[0.0]] * 8760
-FIXED_4_COLUMNS = [[0.0, 0.0, 0.0, 0.0]] * 8760
-FIXED_8_COLUMNS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]] * 8760
+NULL_MATRIX = pd.DataFrame()
+NULL_SCENARIO_MATRIX = pd.DataFrame([[0.0]] * 8760)
+FIXED_4_COLUMNS = pd.DataFrame([[0.0, 0.0, 0.0, 0.0]] * 8760)
+FIXED_8_COLUMNS = pd.DataFrame([[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]] * 8760)
 
 DAILY_ROW_OF_24S: List[List[MatrixData]] = [[24.0]] * 365
 DAILY_ROW_OF_1S: List[List[MatrixData]] = [[1.0]] * 365

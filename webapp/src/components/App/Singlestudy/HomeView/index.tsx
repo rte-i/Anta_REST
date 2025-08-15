@@ -12,22 +12,21 @@
  * This file is part of the Antares project.
  */
 
-import { useNavigate } from "react-router-dom";
 import { Box } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import Split from "react-split";
-import type { StudyMetadata, VariantTree } from "../../../../common/types";
+import type { StudyMetadata, VariantTree } from "../../../../types/types";
+import InformationView from "./InformationView";
 import "./Split.css";
 import StudyTreeView from "./StudyTreeView";
-import InformationView from "./InformationView";
 
 interface Props {
-  study: StudyMetadata | undefined;
-  tree: VariantTree | undefined;
+  study: StudyMetadata;
+  variantTree: VariantTree;
 }
 
-function HomeView(props: Props) {
+function HomeView({ study, variantTree }: Props) {
   const navigate = useNavigate();
-  const { study, tree } = props;
 
   return (
     <Split
@@ -41,6 +40,7 @@ function HomeView(props: Props) {
         flex: 1,
       }}
     >
+      {/* Left */}
       <Box
         height="100%"
         display="flex"
@@ -49,38 +49,16 @@ function HomeView(props: Props) {
         alignItems="flex-start"
         boxSizing="border-box"
         overflow="hidden"
-        px={2}
+        px={1}
       >
         <StudyTreeView
           study={study}
-          tree={tree}
+          variantTree={variantTree}
           onClick={(studyId: string) => navigate(`/studies/${studyId}`)}
         />
       </Box>
-      <Box
-        height="100%"
-        display="flex"
-        flexDirection="row"
-        justifyContent="flex-start"
-        alignItems="flex-start"
-        boxSizing="border-box"
-        overflow="hidden"
-        sx={{ overflowX: "auto" }}
-      >
-        <Box
-          flex={1}
-          minWidth="700px"
-          height="100%"
-          display="flex"
-          flexDirection="column"
-          justifyContent="center"
-          alignItems="center"
-          boxSizing="border-box"
-          overflow="hidden"
-        >
-          <InformationView study={study} tree={tree} />
-        </Box>
-      </Box>
+      {/* Right */}
+      <InformationView study={study} variantTree={variantTree} />
     </Split>
   );
 }
