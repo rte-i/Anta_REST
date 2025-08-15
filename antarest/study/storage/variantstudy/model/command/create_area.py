@@ -89,14 +89,10 @@ class CreateArea(ICommand):
     # we choose to declare it as an empty dictionary.
     # fixme: remove this attribute in the next version if it is not used by the "Script R" team,
     #  or if we don't want to support this feature.
-    metadata: Dict[str, str] = Field(
-        default_factory=dict, description="Area metadata: country and tag list"
-    )
+    metadata: Dict[str, str] = Field(default_factory=dict, description="Area metadata: country and tag list")
 
     @override
-    def _apply(
-        self, study_data: FileStudy, listener: Optional[ICommandListener] = None
-    ) -> CommandOutput:
+    def _apply(self, study_data: FileStudy, listener: Optional[ICommandListener] = None) -> CommandOutput:
         config = study_data.config
 
         area_id = transform_name_to_id(self.area_name)
@@ -125,21 +121,11 @@ class CreateArea(ICommand):
         hydro_config.setdefault("inter-monthly-breakdown", {})[area_id] = 1
 
         null_matrix = self.command_context.generator_matrix_constants.get_null_matrix()
-        null_scenario_matrix = (
-            self.command_context.generator_matrix_constants.get_null_scenario_matrix()
-        )
-        max_res_level_matrix = (
-            self.command_context.generator_matrix_constants.get_default_daily_max_res_level()
-        )
-        avg_res_level_matrix = (
-            self.command_context.generator_matrix_constants.get_default_daily_avg_res_level()
-        )
-        min_res_level_matrix = (
-            self.command_context.generator_matrix_constants.get_default_daily_min_res_level()
-        )
-        hydro_max_energy_matrix = (
-            self.command_context.generator_matrix_constants.get_default_daily_hydro_energy()
-        )
+        null_scenario_matrix = self.command_context.generator_matrix_constants.get_null_scenario_matrix()
+        max_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_max_res_level()
+        avg_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_avg_res_level()
+        min_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_min_res_level()
+        hydro_max_energy_matrix = self.command_context.generator_matrix_constants.get_default_daily_hydro_energy()
 
         new_area_data: JSON = {
             "input": {
@@ -220,9 +206,7 @@ class CreateArea(ICommand):
                 "misc-gen": {
                     f"miscgen-{area_id}": self.command_context.generator_matrix_constants.get_default_miscgen()
                 },
-                "reserves": {
-                    area_id: self.command_context.generator_matrix_constants.get_default_reserves()
-                },
+                "reserves": {area_id: self.command_context.generator_matrix_constants.get_default_reserves()},
                 "solar": {
                     "prepro": {
                         area_id: {
@@ -265,9 +249,7 @@ class CreateArea(ICommand):
 
         # Ensure the "annual" key exists in the hydro correlation configuration to avoid incorrect setup
 
-        new_correlation = study_data.tree.get(
-            ["input", "hydro", "prepro", "correlation"]
-        )
+        new_correlation = study_data.tree.get(["input", "hydro", "prepro", "correlation"])
         new_correlation.setdefault("annual", {})
         new_area_data["input"]["hydro"]["prepro"]["correlation"] = new_correlation
 
@@ -277,24 +259,15 @@ class CreateArea(ICommand):
             hydro_config.setdefault("leeway up", {})[area_id] = 1
             hydro_config.setdefault("pumping efficiency", {})[area_id] = 1
 
-            new_area_data["input"]["hydro"]["common"]["capacity"][
-                f"creditmodulations_{area_id}"
-            ] = (
+            new_area_data["input"]["hydro"]["common"]["capacity"][f"creditmodulations_{area_id}"] = (
                 self.command_context.generator_matrix_constants.get_hydro_credit_modulations()
             )
-            new_area_data["input"]["hydro"]["common"]["capacity"][
-                f"inflowPattern_{area_id}"
-            ] = (
+            new_area_data["input"]["hydro"]["common"]["capacity"][f"inflowPattern_{area_id}"] = (
                 self.command_context.generator_matrix_constants.get_hydro_inflow_pattern()
             )
-            new_area_data["input"]["hydro"]["common"]["capacity"][
-                f"waterValues_{area_id}"
-            ] = null_matrix
+            new_area_data["input"]["hydro"]["common"]["capacity"][f"waterValues_{area_id}"] = null_matrix
 
-        has_renewables = (
-            version >= STUDY_VERSION_8_1
-            and EnrModelling(config.enr_modelling) == EnrModelling.CLUSTERS
-        )
+        has_renewables = version >= STUDY_VERSION_8_1 and EnrModelling(config.enr_modelling) == EnrModelling.CLUSTERS
         if has_renewables:
             new_area_data["input"]["renewables"] = {"clusters": {area_id: {"list": {}}}}
 
@@ -308,27 +281,17 @@ class CreateArea(ICommand):
             new_area_data["input"]["hydro"]["series"][area_id]["mingen"] = null_matrix
 
         if version >= STUDY_VERSION_9_2:
-            new_area_data["input"]["hydro"]["series"][area_id][
-                "maxHourlyGenPower"
-            ] = null_scenario_matrix
-            new_area_data["input"]["hydro"]["series"][area_id][
-                "maxHourlyPumpPower"
-            ] = null_scenario_matrix
-            new_area_data["input"]["hydro"]["common"]["capacity"][
-                f"maxDailyGenEnergy_{area_id}"
-            ] = hydro_max_energy_matrix
-            new_area_data["input"]["hydro"]["common"]["capacity"][
-                f"maxDailyPumpEnergy_{area_id}"
-            ] = hydro_max_energy_matrix
-            new_area_data["input"]["hydro"]["series"][area_id][
-                "maxDailyReservoirLevels"
-            ] = max_res_level_matrix
-            new_area_data["input"]["hydro"]["series"][area_id][
-                "minDailyReservoirLevels"
-            ] = min_res_level_matrix
-            new_area_data["input"]["hydro"]["series"][area_id][
-                "avgDailyReservoirLevels"
-            ] = avg_res_level_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyGenPower"] = null_scenario_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyPumpPower"] = null_scenario_matrix
+            new_area_data["input"]["hydro"]["common"]["capacity"][f"maxDailyGenEnergy_{area_id}"] = (
+                hydro_max_energy_matrix
+            )
+            new_area_data["input"]["hydro"]["common"]["capacity"][f"maxDailyPumpEnergy_{area_id}"] = (
+                hydro_max_energy_matrix
+            )
+            new_area_data["input"]["hydro"]["series"][area_id]["maxDailyReservoirLevels"] = max_res_level_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["minDailyReservoirLevels"] = min_res_level_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["avgDailyReservoirLevels"] = avg_res_level_matrix
 
         new_area_data["input"]["hydro"]["hydro"] = hydro_config
 
