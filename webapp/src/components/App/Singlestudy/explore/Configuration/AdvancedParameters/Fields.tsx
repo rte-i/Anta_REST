@@ -29,6 +29,8 @@ import {
   UNIT_COMMITMENT_MODE_OPTIONS,
   SIMULATION_CORES_OPTIONS,
   RENEWABLE_GENERATION_OPTIONS,
+  HYDRO_MAX_POWER_OPTIONS,
+  HYDRO_RESERVOIR_LEVELS_OPTION,
   UnitCommitmentMode,
   type AdvancedParamsFormFields,
 } from "./utils";
@@ -171,6 +173,25 @@ function Fields() {
             label={t("study.configuration.advancedParameters.renewableGenerationModeling")}
             options={RENEWABLE_GENERATION_OPTIONS}
             name="renewableGenerationModelling"
+            control={control}
+          />
+        )}
+      </Fieldset>
+
+      <Fieldset legend={t("study.configuration.advancedParameters.compatibility")}>
+        {studyVersion >= 920 && (
+          <SelectFE
+            label={t("study.configuration.advancedParameters.hydroPmax")}
+            options={HYDRO_MAX_POWER_OPTIONS}
+            name="hydroPmax"
+            control={control}
+          />
+        )}
+        {studyVersion >= 920 && (
+          <SelectFE
+            label={t("study.configuration.advancedParameters.hydroRuleCurves")}
+            options={HYDRO_RESERVOIR_LEVELS_OPTION}
+            name="hydroRuleCurves"
             control={control}
           />
         )}

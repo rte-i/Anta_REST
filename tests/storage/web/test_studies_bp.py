@@ -463,6 +463,7 @@ def test_sim_result() -> None:
         otherPreferences={},
         advancedParameters={},
         seedsMersenneTwister={},
+        compatibility={},
     )
     result_data = [
         StudySimResultDTO(

@@ -21,7 +21,7 @@ storage:
 launcher:
   local:
     binaries:
-      920: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/solver/920/antares-9.2-solver
+      920: /home/milos/Documents/RTEi/03-Antares-Web/01-SourceCode/antares_data/solver/920-beta/antares-9.2-solver-beta
 
 #  slurm:
 #    local_workspace: /path/to/slurm_workspace  # Path to the local SLURM workspace

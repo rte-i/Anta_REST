@@ -76,6 +76,16 @@ enum RenewableGenerationModeling {
   Clusters = "clusters",
 }
 
+enum HydroMaxPower {
+  Daily = "daily",
+  Hourly = "hourly",
+}
+
+enum HydroReservoirLevels {
+  Single = "single",
+  Scenarized = "scenarized",
+}
+
 ////////////////////////////////////////////////////////////////
 // Constants
 ////////////////////////////////////////////////////////////////
@@ -90,6 +100,8 @@ export const RESERVE_MANAGEMENT_OPTIONS = Object.values(ReserveManagement);
 export const UNIT_COMMITMENT_MODE_OPTIONS = Object.values(UnitCommitmentMode);
 export const SIMULATION_CORES_OPTIONS = Object.values(SimulationCore);
 export const RENEWABLE_GENERATION_OPTIONS = Object.values(RenewableGenerationModeling);
+export const HYDRO_MAX_POWER_OPTIONS = Object.values(HydroMaxPower);
+export const HYDRO_RESERVOIR_LEVELS_OPTION = Object.values(HydroReservoirLevels);
 
 ////////////////////////////////////////////////////////////////
 // Types
@@ -117,6 +129,8 @@ export interface AdvancedParamsFormFields {
   seedUnsuppliedEnergyCosts: number;
   sheddingPolicy: string;
   unitCommitmentMode: string;
+  hydroPmax: string;
+  hydroRuleCurves: string;
 }
 
 type AdvancedParamsFormFields_RAW = Omit<AdvancedParamsFormFields, "accuracyOnCorrelation"> & {

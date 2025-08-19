@@ -14,13 +14,15 @@ from typing import Any, Dict
 
 from typing_extensions import override
 
-from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_6
+from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_6, STUDY_VERSION_9_2
 from antarest.study.storage.rawstudy.model.filesystem.folder_node import FolderNode
 from antarest.study.storage.rawstudy.model.filesystem.inode import TREE, INode
 from antarest.study.storage.rawstudy.model.filesystem.matrix.constants import (
     default_scenario_daily,
     default_scenario_hourly,
     default_scenario_monthly,
+    default_res_level_max_daily,
+    default_res_level_avg_daily,
 )
 from antarest.study.storage.rawstudy.model.filesystem.matrix.input_series_matrix import InputSeriesMatrix
 from antarest.study.storage.rawstudy.model.filesystem.matrix.matrix import MatrixFrequency
@@ -53,5 +55,36 @@ class InputHydroSeriesArea(FolderNode):
                 self.config.next_file("mingen.txt"),
                 freq=MatrixFrequency.HOURLY,
                 default_empty=default_scenario_hourly,
+            )
+        if study_version >= STUDY_VERSION_9_2:
+            hydro_series_matrices["maxHourlyGenPower"] = InputSeriesMatrix(
+                self.context,
+                self.config.next_file("maxHourlyGenPower.txt"),
+                freq=MatrixFrequency.HOURLY,
+                default_empty=default_scenario_hourly,
+            )
+            hydro_series_matrices["maxHourlyPumpPower"] = InputSeriesMatrix(
+                self.context,
+                self.config.next_file("maxHourlyPumpPower.txt"),
+                freq=MatrixFrequency.HOURLY,
+                default_empty=default_scenario_hourly,
+            )
+            hydro_series_matrices["maxDailyReservoirLevels"] = InputSeriesMatrix(
+                self.context,
+                self.config.next_file("maxDailyReservoirLevels.txt"),
+                freq=MatrixFrequency.DAILY,
+                default_empty=default_res_level_max_daily,
+            )
+            hydro_series_matrices["minDailyReservoirLevels"] = InputSeriesMatrix(
+                self.context,
+                self.config.next_file("minDailyReservoirLevels.txt"),
+                freq=MatrixFrequency.DAILY,
+                default_empty=default_scenario_daily,
+            )
+            hydro_series_matrices["avgDailyReservoirLevels"] = InputSeriesMatrix(
+                self.context,
+                self.config.next_file("avgDailyReservoirLevels.txt"),
+                freq=MatrixFrequency.DAILY,
+                default_empty=default_res_level_avg_daily,
             )
         return hydro_series_matrices

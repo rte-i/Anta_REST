@@ -16,7 +16,13 @@ from pydantic import Field
 from typing_extensions import override
 
 from antarest.core.model import JSON
-from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_1, STUDY_VERSION_8_3, STUDY_VERSION_8_6
+from antarest.study.model import (
+    STUDY_VERSION_6_5,
+    STUDY_VERSION_8_1,
+    STUDY_VERSION_8_3,
+    STUDY_VERSION_8_6,
+    STUDY_VERSION_9_2,
+)
 from antarest.study.storage.rawstudy.model.filesystem.config.identifier import transform_name_to_id
 from antarest.study.storage.rawstudy.model.filesystem.config.model import Area, EnrModelling, FileStudyTreeConfig
 from antarest.study.storage.rawstudy.model.filesystem.factory import FileStudy
@@ -120,6 +126,11 @@ class CreateArea(ICommand):
         hydro_config.setdefault("inter-monthly-breakdown", {})[area_id] = 1
 
         null_matrix = self.command_context.generator_matrix_constants.get_null_matrix()
+        null_scenario_matrix = self.command_context.generator_matrix_constants.get_null_scenario_matrix()
+        max_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_max_res_level()
+        avg_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_avg_res_level()
+        min_res_level_matrix = self.command_context.generator_matrix_constants.get_default_daily_min_res_level()
+        hydro_max_energy_matrix = self.command_context.generator_matrix_constants.get_default_daily_hydro_energy()
 
         new_area_data: JSON = {
             "input": {
@@ -273,6 +284,19 @@ class CreateArea(ICommand):
         if version >= STUDY_VERSION_8_6:
             new_area_data["input"]["st-storage"] = {"clusters": {area_id: {"list": {}}}}
             new_area_data["input"]["hydro"]["series"][area_id]["mingen"] = null_matrix
+
+        if version >= STUDY_VERSION_9_2:
+            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyGenPower"] = null_scenario_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxHourlyPumpPower"] = null_scenario_matrix
+            new_area_data["input"]["hydro"]["common"]["capacity"][
+                f"maxDailyGenEnergy_{area_id}"
+            ] = hydro_max_energy_matrix
+            new_area_data["input"]["hydro"]["common"]["capacity"][
+                f"maxDailyPumpEnergy_{area_id}"
+            ] = hydro_max_energy_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["maxDailyReservoirLevels"] = max_res_level_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["minDailyReservoirLevels"] = min_res_level_matrix
+            new_area_data["input"]["hydro"]["series"][area_id]["avgDailyReservoirLevels"] = avg_res_level_matrix
 
         new_area_data["input"]["hydro"]["hydro"] = hydro_config
 

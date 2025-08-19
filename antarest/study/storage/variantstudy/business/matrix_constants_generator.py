@@ -25,6 +25,10 @@ from antarest.study.storage.variantstudy.business.matrix_constants.common import
     FIXED_8_COLUMNS,
     NULL_MATRIX,
     NULL_SCENARIO_MATRIX,
+    DAILY_ROW_OF_24S,
+    DAILY_ROW_OF_1S,
+    DAILY_ROW_OF_0_5S,
+    DAILY_ROW_OF_0S,
 )
 
 # TODO: put index into variable
@@ -54,6 +58,12 @@ BINDING_CONSTRAINT_DAILY_WEEKLY_v86 = "empty_2nd_member_daily_or_weekly_v86"
 
 BINDING_CONSTRAINT_HOURLY_v87 = "empty_2nd_member_hourly_v87"
 BINDING_CONSTRAINT_DAILY_WEEKLY_v87 = "empty_2nd_member_daily_or_weekly_v87"
+
+# hydro data for Antares v9.2 (scenarized)
+HYDRO_DAILY_ENERGY = "hydro_daily_energy"
+MAX_RES_LEVEL = "max_res_level"
+AVG_RES_LEVEL = "avg_res_level"
+MIN_RES_LEVEL = "min_res_level"
 
 # Short-term storage aliases
 ST_STORAGE_PMAX_INJECTION = ONES_SCENARIO_MATRIX
@@ -108,6 +118,11 @@ class GeneratorMatrixConstants:
             self.hashes[EMPTY_SCENARIO_MATRIX] = self.matrix_service.create(NULL_SCENARIO_MATRIX)
             self.hashes[RESERVES_TS] = self.matrix_service.create(FIXED_4_COLUMNS)
             self.hashes[MISCGEN_TS] = self.matrix_service.create(FIXED_8_COLUMNS)
+
+            self.hashes[HYDRO_DAILY_ENERGY] = self.matrix_service.create(DAILY_ROW_OF_24S)
+            self.hashes[MAX_RES_LEVEL] = self.matrix_service.create(DAILY_ROW_OF_1S)
+            self.hashes[AVG_RES_LEVEL] = self.matrix_service.create(DAILY_ROW_OF_0_5S)
+            self.hashes[MIN_RES_LEVEL] = self.matrix_service.create(DAILY_ROW_OF_0S)
 
         # Binding constraint matrices
         series_before_87 = matrix_constants.binding_constraint.series_before_v87
@@ -214,3 +229,15 @@ class GeneratorMatrixConstants:
     def get_st_storage_inflows(self) -> str:
         """2D-matrix of shape (8760, 1), filled-in with zeros."""
         return MATRIX_PROTOCOL_PREFIX + self.hashes[ST_STORAGE_INFLOWS]
+
+    def get_default_daily_hydro_energy(self) -> str:
+        return MATRIX_PROTOCOL_PREFIX + self.hashes[HYDRO_DAILY_ENERGY]
+
+    def get_default_daily_max_res_level(self) -> str:
+        return MATRIX_PROTOCOL_PREFIX + self.hashes[MAX_RES_LEVEL]
+
+    def get_default_daily_avg_res_level(self) -> str:
+        return MATRIX_PROTOCOL_PREFIX + self.hashes[AVG_RES_LEVEL]
+
+    def get_default_daily_min_res_level(self) -> str:
+        return MATRIX_PROTOCOL_PREFIX + self.hashes[MIN_RES_LEVEL]

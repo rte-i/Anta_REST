@@ -18,3 +18,8 @@ NULL_MATRIX: List[List[MatrixData]] = [[]]
 NULL_SCENARIO_MATRIX: List[List[MatrixData]] = [[0.0]] * 8760
 FIXED_4_COLUMNS = [[0.0, 0.0, 0.0, 0.0]] * 8760
 FIXED_8_COLUMNS = [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]] * 8760
+
+DAILY_ROW_OF_24S: List[List[MatrixData]] = [[24.0]] * 365
+DAILY_ROW_OF_1S: List[List[MatrixData]] = [[1.0]] * 365
+DAILY_ROW_OF_0_5S: List[List[MatrixData]] = [[0.5]] * 365
+DAILY_ROW_OF_0S: List[List[MatrixData]] = [[0.0]] * 365
