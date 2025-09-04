@@ -68,5 +68,22 @@ class InputHydroSeriesArea(FolderNode):
                 freq=MatrixFrequency.HOURLY,
                 default_empty=default_scenario_hourly,
             )
-
+            hydro_series_matrices["maxDailyReservoirLevels"] = InputSeriesMatrix(
+                self.matrix_mapper,
+                self.config.next_file("maxDailyReservoirLevels.txt"),
+                freq=MatrixFrequency.DAILY,
+                default_empty=default_scenario_daily,
+            )
+            hydro_series_matrices["minDailyReservoirLevels"] = InputSeriesMatrix(
+                self.matrix_mapper,
+                self.config.next_file("minDailyReservoirLevels.txt"),
+                freq=MatrixFrequency.DAILY,
+                default_empty=default_scenario_daily,
+            )
+            hydro_series_matrices["avgDailyReservoirLevels"] = InputSeriesMatrix(
+                self.matrix_mapper,
+                self.config.next_file("avgDailyReservoirLevels.txt"),
+                freq=MatrixFrequency.DAILY,
+                default_empty=default_scenario_daily,
+            )
         return hydro_series_matrices

@@ -282,6 +282,20 @@ class CreateArea(ICommand):
                 self.command_context.generator_matrix_constants.get_max_daily_pump_energy()
             )
 
+            new_area_data["input"]["hydro"]["series"][area_id]["maxDailyReservoirLevels"] = (
+                self.command_context.generator_matrix_constants.get_max_reservoir_level()
+            )
+
+            new_area_data["input"]["hydro"]["series"][area_id]["minDailyReservoirLevels"] = (
+                self.command_context.generator_matrix_constants.get_min_reservoir_level()
+            )
+
+            new_area_data["input"]["hydro"]["series"][area_id]["avgDailyReservoirLevels"] = (
+                self.command_context.generator_matrix_constants.get_avg_reservoir_level()
+            )
+
+
+
         new_area_data["input"]["hydro"]["hydro"] = hydro_config
         
         # NOTE regarding the following configurations:

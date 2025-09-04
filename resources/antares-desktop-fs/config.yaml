@@ -8,14 +8,14 @@ db:
 
 #pathovi do putanja koje mu trebaju
 storage:
-  tmp_dir: /home/rtei-beg-see-dp/Antares-Development/cr23-backend/Anta_REST/resources/antares-desktop-fs/tmp
-  matrixstore: /home/rtei-beg-see-dp/Antares-Development/cr23-backend/Anta_REST/resources/antares-desktop-fs/matrices
-  archive_dir: /home/rtei-beg-see-dp/Antares-Development/cr23-backend/Anta_REST/resources/antares-desktop-fs/archives
+  tmp_dir: /home/rtei-beg-see-dp/Antares-Development/cr24-backend/Anta_REST/resources/antares-desktop-fs/tmp
+  matrixstore: /home/rtei-beg-see-dp/Antares-Development/cr24-backend/Anta_REST/resources/antares-desktop-fs/matrices
+  archive_dir: /home/rtei-beg-see-dp/Antares-Development/cr24-backend/Anta_REST/resources/antares-desktop-fs/archives
   workspaces:
     default:
-      path: /home/rtei-beg-see-dp/Antares-Development/cr23-backend/Anta_REST/resources/antares-desktop-fs/internal_studies
+      path: /home/rtei-beg-see-dp/Antares-Development/cr24-backend/Anta_REST/resources/antares-desktop-fs/internal_studies
     studies:
-      path: /home/rtei-beg-see-dp/Antares-Development/cr23-backend/Anta_REST/resources/antares-desktop-fs/studies
+      path: /home/rtei-beg-see-dp/Antares-Development/cr24-backend/Anta_REST/resources/antares-desktop-fs/studies
 
 launcher:
   launchers:
@@ -23,7 +23,7 @@ launcher:
       name: my_local
       type: local
       binaries:
-        920: /home/rtei-beg-see-dp/Antares-Development/solver/antares-solver_ubuntu22.04/antares-solver
+        920: /home/rtei-beg-see-dp/Antares-Development/nikola-solver-cr24/Antares_Simulator/_build/solver/antares-solver
       local_workspace: ./local_workspace
 
       #
@@ -63,4 +63,4 @@ server:
     - watcher
 
 logging:
-  logfile: /home/rtei-beg-see-dp/Antares-Development/cr23-backend/Anta_REST/resources/antares-desktop-fs/logs/antarest.log
+  logfile: /home/rtei-beg-see-dp/Antares-Development/cr24-backend/Anta_REST/resources/antares-desktop-fs/logs/antarest.log

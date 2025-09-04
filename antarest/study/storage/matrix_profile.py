@@ -183,7 +183,9 @@ _SPECIFIC_MATRICES_9_2["input/hydro/series/*/maxHourlyGenPower"] = _MatrixProfil
 _SPECIFIC_MATRICES_9_2["input/hydro/series/*/maxHourlyPumpPower"] = _MatrixProfile(cols=[], rows=[])
 _SPECIFIC_MATRICES_9_2["input/hydro/common/capacity/maxDailyGenEnergy_*"] = _MatrixProfile(cols=[], rows=[])
 _SPECIFIC_MATRICES_9_2["input/hydro/common/capacity/maxDailyPumpEnergy_*"] = _MatrixProfile(cols=[], rows=[])
-
+_SPECIFIC_MATRICES_9_2["input/hydro/series/*/maxDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
+_SPECIFIC_MATRICES_9_2["input/hydro/series/*/minDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
+_SPECIFIC_MATRICES_9_2["input/hydro/series/*/avgDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
 
 def adjust_matrix_columns_index(
     df: pd.DataFrame, matrix_path: str, with_index: bool, with_header: bool, study_version: StudyVersion
