@@ -29,7 +29,14 @@ from antarest.core.model import PublicMode
 from antarest.core.serde.ini_reader import read_ini
 from antarest.core.utils.archives import ArchiveFormat, extract_archive
 from antarest.matrixstore.matrix_uri_mapper import NormalizedMatrixUriMapper
-from antarest.study.model import DEFAULT_WORKSPACE_NAME, STUDY_VERSION_9_2, RawStudy, Study, StudyAdditionalData
+from antarest.study.model import (
+    DEFAULT_WORKSPACE_NAME,
+    STUDY_VERSION_9_2,
+    STUDY_VERSION_9_3,
+    RawStudy,
+    Study,
+    StudyAdditionalData,
+)
 from antarest.study.repository import StudyMetadataRepository
 from antarest.study.storage.abstract_storage_service import AbstractStorageService
 from antarest.study.storage.rawstudy.model.filesystem.config.model import FileStudyTreeConfig, FileStudyTreeConfigDTO
@@ -546,5 +553,18 @@ class RawStudyService(AbstractStorageService):
             # The section is optional and AntaresWeb supports the default Simulator value
             if "compatibility" in ini_content and "hydro-pmax" in ini_content["compatibility"]:
                 hydro_pmax_value = ini_content["compatibility"]["hydro-pmax"]
-                if hydro_pmax_value == "hourly":
-                    raise NotImplementedError("AntaresWeb doesn't support the value 'hourly' for the flag 'hydro-pmax'")
+                if hydro_pmax_value != "hourly" and hydro_pmax_value != "daily":
+                    raise NotImplementedError(
+                        f"AntaresWeb doesn't support the value {hydro_pmax_value} for the flag 'hydro-pmax'"
+                    )
+
+        if StudyVersion.parse(study.version) >= STUDY_VERSION_9_3:
+            general_data_path = Path(study.path) / "settings" / "generaldata.ini"
+            ini_content = read_ini(general_data_path)
+            # The section is optional and AntaresWeb supports the default Simulator value
+            if "compatibility" in ini_content and "hydro-rule-curves" in ini_content["compatibility"]:
+                hydro_rule_curves_value = ini_content["compatibility"]["hydro-rule-curves"]
+                if hydro_rule_curves_value != "single":
+                    raise NotImplementedError(
+                        f"AntaresWeb doesn't support the value {hydro_rule_curves_value} for the flag 'hydro-rule-curves'"
+                    )

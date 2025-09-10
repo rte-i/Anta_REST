@@ -17,12 +17,8 @@ from http import HTTPStatus
 from pathlib import Path
 from unittest.mock import ANY
 
-from antares.study.version import StudyVersion
-from antares.study.version.create_app import CreateApp
 from starlette.testclient import TestClient
 
-from antarest.core.serde.ini_reader import read_ini
-from antarest.core.serde.ini_writer import write_ini_file
 from antarest.study.business.area_management import LayerInfoDTO
 from antarest.study.storage.variantstudy.model.command.common import CommandName
 from tests.integration.assets import ASSETS_DIR
@@ -1253,6 +1249,10 @@ def test_import(client: TestClient, admin_access_token: str, internal_study_id: 
         assert result[1]["name"] == "it.txt"
 
     # Creates a v9.2 study
+
+    """
+    #This test case is disabled because CR23 and C24 implemets it.
+
     study_path = tmp_path / "test"
     app = CreateApp(study_dir=study_path, caption="A", version=StudyVersion.parse("9.2"), author="Unknown")
     app()
@@ -1282,6 +1282,9 @@ def test_import(client: TestClient, admin_access_token: str, internal_study_id: 
         res.json()["description"]
         == "Study 'A' could not be imported: AntaresWeb doesn't support the value 'hourly' for the flag 'hydro-pmax'"
     )
+
+
+    """
 
 
 def test_import_with_editor(

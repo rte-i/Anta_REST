@@ -17,10 +17,13 @@ from antares.study.version import StudyVersion
 from typing_extensions import override
 
 from antarest.core.serde.np_array import NpArray
-from antarest.study.model import STUDY_VERSION_6_5
+from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_9_2
 from antarest.study.storage.rawstudy.model.filesystem.folder_node import FolderNode
 from antarest.study.storage.rawstudy.model.filesystem.inode import TREE
-from antarest.study.storage.rawstudy.model.filesystem.matrix.constants import default_scenario_daily_ones
+from antarest.study.storage.rawstudy.model.filesystem.matrix.constants import (
+    default_scenario_daily,
+    default_scenario_daily_ones,
+)
 from antarest.study.storage.rawstudy.model.filesystem.matrix.input_series_matrix import InputSeriesMatrix
 from antarest.study.storage.rawstudy.model.filesystem.matrix.matrix import MatrixFrequency
 
@@ -80,6 +83,18 @@ MATRICES_INFO: List[MatrixInfo] = [
         "freq": MatrixFrequency.DAILY,
         "start_version": STUDY_VERSION_6_5,
         "default_empty": default_water_values,
+    },
+    {
+        "name": "maxDailyPumpEnergy",
+        "freq": MatrixFrequency.DAILY,
+        "start_version": STUDY_VERSION_9_2,
+        "default_empty": default_scenario_daily,
+    },
+    {
+        "name": "maxDailyGenEnergy",
+        "freq": MatrixFrequency.DAILY,
+        "start_version": STUDY_VERSION_9_2,
+        "default_empty": default_scenario_daily,
     },
 ]
 

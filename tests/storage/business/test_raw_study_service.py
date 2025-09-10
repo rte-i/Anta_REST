@@ -665,8 +665,12 @@ def test_checks_study_compatibility(tmp_path: Path) -> None:
     with open(general_data, "w") as f:
         f.writelines(["[compatibility]\n", "hydro-pmax = hourly"])
 
+    """
+    This flag is disabled because this change request implements it in AntaresWeb
+    
     # The new flag isn't supported, the check should fail
     with pytest.raises(
         NotImplementedError, match="AntaresWeb doesn't support the value 'hourly' for the flag 'hydro-pmax'"
     ):
         study_service.checks_antares_web_compatibility(raw_study)
+    """
