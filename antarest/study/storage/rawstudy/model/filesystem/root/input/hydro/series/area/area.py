@@ -14,7 +14,7 @@ from typing import Any, Dict
 
 from typing_extensions import override
 
-from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_6,STUDY_VERSION_9_2
+from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_6,STUDY_VERSION_9_2,STUDY_VERSION_9_3
 from antarest.study.storage.rawstudy.model.filesystem.folder_node import FolderNode
 from antarest.study.storage.rawstudy.model.filesystem.inode import TREE, INode
 from antarest.study.storage.rawstudy.model.filesystem.matrix.constants import (
@@ -68,6 +68,7 @@ class InputHydroSeriesArea(FolderNode):
                 freq=MatrixFrequency.HOURLY,
                 default_empty=default_scenario_hourly,
             )
+        if study_version >= STUDY_VERSION_9_3:
             hydro_series_matrices["maxDailyReservoirLevels"] = InputSeriesMatrix(
                 self.matrix_mapper,
                 self.config.next_file("maxDailyReservoirLevels.txt"),

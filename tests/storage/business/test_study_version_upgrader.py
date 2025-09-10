@@ -190,7 +190,7 @@ def assert_settings_are_updated(tmp_path: Path, old_values: List[str]) -> None:
     assert "set-to-null-ntc-between-physical-out-for-first-step" not in adequacy_patch
     assert "initial-reservoir-levels" not in other_preferences
     compatibility = data["compatibility"]
-    assert compatibility == {"hydro-pmax": "daily"}
+    assert compatibility == {"hydro-pmax": "daily" ,"hydro-rule-curves": "single"}
     # v9.3 upgrade
     assert "refreshtimeseries" not in general
     assert "refreshintervalload" not in general

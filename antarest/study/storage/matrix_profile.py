@@ -18,7 +18,7 @@ from typing import Dict, NamedTuple, Sequence
 import pandas as pd
 from antares.study.version import StudyVersion
 
-from antarest.study.model import STUDY_VERSION_8_2, STUDY_VERSION_8_6, STUDY_VERSION_8_7 , STUDY_VERSION_9_2
+from antarest.study.model import STUDY_VERSION_8_2, STUDY_VERSION_8_6, STUDY_VERSION_8_7 , STUDY_VERSION_9_2,STUDY_VERSION_9_3
 from antarest.study.storage.utils import MONTHS
 
 
@@ -183,9 +183,12 @@ _SPECIFIC_MATRICES_9_2["input/hydro/series/*/maxHourlyGenPower"] = _MatrixProfil
 _SPECIFIC_MATRICES_9_2["input/hydro/series/*/maxHourlyPumpPower"] = _MatrixProfile(cols=[], rows=[])
 _SPECIFIC_MATRICES_9_2["input/hydro/common/capacity/maxDailyGenEnergy_*"] = _MatrixProfile(cols=[], rows=[])
 _SPECIFIC_MATRICES_9_2["input/hydro/common/capacity/maxDailyPumpEnergy_*"] = _MatrixProfile(cols=[], rows=[])
-_SPECIFIC_MATRICES_9_2["input/hydro/series/*/maxDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
-_SPECIFIC_MATRICES_9_2["input/hydro/series/*/minDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
-_SPECIFIC_MATRICES_9_2["input/hydro/series/*/avgDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
+
+_SPECIFIC_MATRICES_9_3 = copy.deepcopy(_SPECIFIC_MATRICES_9_2)
+
+_SPECIFIC_MATRICES_9_3["input/hydro/series/*/maxDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
+_SPECIFIC_MATRICES_9_3["input/hydro/series/*/minDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
+_SPECIFIC_MATRICES_9_3["input/hydro/series/*/avgDailyReservoirLevels"] = _MatrixProfile(cols=[], rows=[])
 
 def adjust_matrix_columns_index(
     df: pd.DataFrame, matrix_path: str, with_index: bool, with_header: bool, study_version: StudyVersion
@@ -211,8 +214,10 @@ def adjust_matrix_columns_index(
         matrix_profiles = _SPECIFIC_MATRICES_8_6
     elif study_version < STUDY_VERSION_9_2:
         matrix_profiles = _SPECIFIC_MATRICES_8_7
-    else:
+    elif study_version < STUDY_VERSION_9_3:
         matrix_profiles = _SPECIFIC_MATRICES_9_2
+    else:
+        matrix_profiles = _SPECIFIC_MATRICES_9_3
 
     # Apply the matrix profile to the dataframe to adjust the column names and index
     for pattern, matrix_profile in matrix_profiles.items():

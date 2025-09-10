@@ -1253,6 +1253,10 @@ def test_import(client: TestClient, admin_access_token: str, internal_study_id: 
         assert result[1]["name"] == "it.txt"
 
     # Creates a v9.2 study
+
+    """
+    #This test case is disabled because CR23 and C24 implemets it.
+
     study_path = tmp_path / "test"
     app = CreateApp(study_dir=study_path, caption="A", version=StudyVersion.parse("9.2"), author="Unknown")
     app()
@@ -1282,6 +1286,9 @@ def test_import(client: TestClient, admin_access_token: str, internal_study_id: 
         res.json()["description"]
         == "Study 'A' could not be imported: AntaresWeb doesn't support the value 'hourly' for the flag 'hydro-pmax'"
     )
+
+
+    """
 
 
 def test_import_with_editor(
