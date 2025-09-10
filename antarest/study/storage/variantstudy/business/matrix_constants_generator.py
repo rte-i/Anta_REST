@@ -22,14 +22,14 @@ from antarest.matrixstore.service import MATRIX_PROTOCOL_PREFIX, ISimpleMatrixSe
 from antarest.study.model import STUDY_VERSION_6_5, STUDY_VERSION_8_2
 from antarest.study.storage.variantstudy.business import matrix_constants
 from antarest.study.storage.variantstudy.business.matrix_constants.common import (
+    DAILY_ROWS_OF_24S,
+    DAILY_ROWS_OF_HALFS,
+    DAILY_ROWS_OF_ONES,
+    DAILY_ROWS_OF_ZEROS,
     FIXED_4_COLUMNS,
     FIXED_8_COLUMNS,
     NULL_MATRIX,
     NULL_SCENARIO_MATRIX,
-    DAILY_ROWS_OF_24S,
-    DAILY_ROWS_OF_ZEROS,
-    DAILY_ROWS_OF_HALFS,
-    DAILY_ROWS_OF_ONES
 )
 from antarest.study.storage.variantstudy.business.matrix_constants.matrix_constants_usage_provider import (
     ConstantsMatrixUsageProvider,
@@ -127,9 +127,9 @@ class GeneratorMatrixConstants:
             self.hashes[HYDRO_MAX_HOURLY_PUMP_POWER] = self.matrix_service.create(NULL_MATRIX)
             self.hashes[HYDRO_MAX_DAILY_GEN_ENERGY] = self.matrix_service.create(DAILY_ROWS_OF_24S)
             self.hashes[HYDRO_MAX_DAILY_PUMP_ENERGY] = self.matrix_service.create(DAILY_ROWS_OF_24S)
-            self.hashes[HYDRO_MAX_DAILY_RESERVOIR_LEVELS] = self.matrix_service.create(DAILY_ROWS_OF_ONES) 
-            self.hashes[HYDRO_MIN_DAILY_RESERVOIR_LEVELS] = self.matrix_service.create(DAILY_ROWS_OF_ZEROS) 
-            self.hashes[HYDRO_AVG_DAILY_RESERVOIR_LEVELS] = self.matrix_service.create(DAILY_ROWS_OF_HALFS) 
+            self.hashes[HYDRO_MAX_DAILY_RESERVOIR_LEVELS] = self.matrix_service.create(DAILY_ROWS_OF_ONES)
+            self.hashes[HYDRO_MIN_DAILY_RESERVOIR_LEVELS] = self.matrix_service.create(DAILY_ROWS_OF_ZEROS)
+            self.hashes[HYDRO_AVG_DAILY_RESERVOIR_LEVELS] = self.matrix_service.create(DAILY_ROWS_OF_HALFS)
 
         # Binding constraint matrices
         series_before_87 = matrix_constants.binding_constraint.series_before_v87
@@ -242,20 +242,20 @@ class GeneratorMatrixConstants:
         return MATRIX_PROTOCOL_PREFIX + self.hashes[ST_STORAGE_INFLOWS]
 
     def get_hydro_max_hourly_gen_power(self) -> str:
-        return MATRIX_PROTOCOL_PREFIX + self.hashes[HYDRO_MAX_HOURLY_GEN_POWER] 
+        return MATRIX_PROTOCOL_PREFIX + self.hashes[HYDRO_MAX_HOURLY_GEN_POWER]
 
     def get_hydro_max_hourly_pump_power(self) -> str:
         return MATRIX_PROTOCOL_PREFIX + self.hashes[HYDRO_MAX_HOURLY_PUMP_POWER]
-    
-    def get_max_daily_gen_energy(self) ->str:
+
+    def get_max_daily_gen_energy(self) -> str:
         return MATRIX_PROTOCOL_PREFIX + self.hashes[HYDRO_MAX_DAILY_GEN_ENERGY]
-    
-    def get_max_daily_pump_energy(self) ->str:
+
+    def get_max_daily_pump_energy(self) -> str:
         return MATRIX_PROTOCOL_PREFIX + self.hashes[HYDRO_MAX_DAILY_PUMP_ENERGY]
 
     def get_min_reservoir_level(self) -> str:
         return MATRIX_PROTOCOL_PREFIX + self.hashes[HYDRO_MIN_DAILY_RESERVOIR_LEVELS]
-    
+
     def get_max_reservoir_level(self) -> str:
         return MATRIX_PROTOCOL_PREFIX + self.hashes[HYDRO_MAX_DAILY_RESERVOIR_LEVELS]
 
