@@ -15,6 +15,7 @@
 import type { DeepPartial } from "react-hook-form";
 import type { StudyMetadata } from "../../../../../../types/types";
 import client from "../../../../../../services/api/client";
+import exp from "constants";
 
 ////////////////////////////////////////////////////////////////
 // Enums
@@ -77,6 +78,10 @@ enum RenewableGenerationModeling {
   Aggregated = "aggregated",
   Clusters = "clusters",
 }
+enum HydroRuleCurves{
+  single = "single",
+  scenarized = "scenarized"
+}
 
 ////////////////////////////////////////////////////////////////
 // Constants
@@ -92,6 +97,7 @@ export const RESERVE_MANAGEMENT_OPTIONS = Object.values(ReserveManagement);
 export const UNIT_COMMITMENT_MODE_OPTIONS = Object.values(UnitCommitmentMode);
 export const SIMULATION_CORES_OPTIONS = Object.values(SimulationCore);
 export const RENEWABLE_GENERATION_OPTIONS = Object.values(RenewableGenerationModeling);
+export const HydroRuleCurvesOptions = Object.values(HydroRuleCurves);
 
 ////////////////////////////////////////////////////////////////
 // Types
@@ -121,6 +127,7 @@ export interface AdvancedParamsFormFields {
   unitCommitmentMode: string;
   // Since v9.3
   accurateShavePeaksIncludeShortTermStorage?: boolean;
+  hydroRuleCurves: string;
 }
 
 type AdvancedParamsFormFields_RAW = Omit<AdvancedParamsFormFields, "accuracyOnCorrelation"> & {

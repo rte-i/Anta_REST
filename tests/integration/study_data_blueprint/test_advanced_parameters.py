@@ -100,6 +100,7 @@ class TestAdvancedParametersForm:
             "seedUnsuppliedEnergyCosts": 6005489,
             "sheddingPolicy": "shave peaks",
             "unitCommitmentMode": "fast",
+            "hydroRuleCurves": None,
         }
 
         if study_version:

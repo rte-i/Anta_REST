@@ -22,6 +22,7 @@ import type { SplitViewProps } from "../../../../../../common/SplitView";
 import { getAllocationMatrix } from "./Allocation/utils";
 import { getCorrelationMatrix } from "./Correlation/utils";
 import InflowStructure from "./InflowStructure";
+import Hydro from ".";
 
 ////////////////////////////////////////////////////////////////
 // Enums
@@ -39,6 +40,9 @@ export const HydroMatrix = {
   OverallMonthlyHydro: "OverallMonthlyHydro",
   Allocation: "Allocation",
   Correlation: "Correlation",
+  MaxDailyReservoirLevels: "MaxDailyReservoirLevels",
+  MinDailyReservoirLevels: "MinDailyReservoirLevels",
+  AvgDailyReservoirLevels: "AvgDailyReservoirLevels",
 } as const;
 
 ////////////////////////////////////////////////////////////////
@@ -129,6 +133,18 @@ export const HYDRO_ROUTES: HydroRoute[] = [
     path: "mingen",
     type: HydroMatrix.MinGen,
   },
+  {
+    path: "maxDailyReservoirLevels",
+    type: HydroMatrix.MaxDailyReservoirLevels,
+  },
+  {
+    path: "minDailyReservoirLevels",
+    type: HydroMatrix.MinDailyReservoirLevels,
+  },
+  {
+    path: "avgDailyReservoirLevels",
+    type: HydroMatrix.AvgDailyReservoirLevels,
+  }
 ];
 
 export const MATRICES: Matrices = {
@@ -178,6 +194,18 @@ export const MATRICES: Matrices = {
   [HydroMatrix.MinGen]: {
     title: "Min Gen",
     url: "input/hydro/series/{areaId}/mingen",
+  },
+  [HydroMatrix.MaxDailyReservoirLevels]: {
+    title: "Max Daily Reservoir Levels",
+    url: "input/hydro/series/{areaId}/maxDailyReservoirLevels",
+  },
+  [HydroMatrix.MinDailyReservoirLevels]: {
+    title: "Min Daily Reservoir Levels",
+    url: "input/hydro/series/{areaId}/minDailyReservoirLevels",
+  },
+  [HydroMatrix.AvgDailyReservoirLevels]: {
+    title: "Avg Daily Reservoir Levels",
+    url: "input/hydro/series/{areaId}/avgDailyReservoirLevels",
   },
   [HydroMatrix.InflowPattern]: {
     title: "Inflow Pattern",
