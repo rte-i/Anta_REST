@@ -12,7 +12,7 @@
  * This file is part of the Antares project.
  */
 
-import { useMemo, useState,useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useOutletContext } from "react-router";
 import useAppSelector from "../../../../../../../redux/hooks/useAppSelector";
 import { getCurrentAreaId } from "../../../../../../../redux/selectors";
@@ -26,13 +26,11 @@ function Hydro() {
   const studyVersion = Number(study.version);
   const [hydroRuleCurves, setHydroRuleCurves] = useState<string>("");
 
-
   useEffect(() => {
     getAdvancedParamsFormFields(study.id).then((data) => {
       setHydroRuleCurves(data.hydroRuleCurves || "");
     });
   }, [study.id]);
-
 
   const tabList = useMemo(() => {
     const basePath = `/studies/${study?.id}/explore/modelization/area/${encodeURI(areaId)}/hydro`;
@@ -53,13 +51,13 @@ function Hydro() {
       studyVersion >= 860 && { label: "Min Gen", path: `${basePath}/mingen` },
       ...(studyVersion >= 930 && hydroRuleCurves === "scenarized"
         ? [
-          { label: "Max Reservoir Levels", path: `${basePath}/maxDailyReservoirLevels` },
-          { label: "Min Reservoir Levels", path: `${basePath}/minDailyReservoirLevels` },
-          { label: "Avg Reservoir Levels", path: `${basePath}/avgDailyReservoirLevels` },
-        ]
+            { label: "Max Reservoir Levels", path: `${basePath}/maxDailyReservoirLevels` },
+            { label: "Min Reservoir Levels", path: `${basePath}/minDailyReservoirLevels` },
+            { label: "Avg Reservoir Levels", path: `${basePath}/avgDailyReservoirLevels` },
+          ]
         : []),
     ].filter(Boolean);
-  }, [areaId, study?.id, studyVersion,hydroRuleCurves]);
+  }, [areaId, study?.id, studyVersion, hydroRuleCurves]);
 
   ////////////////////////////////////////////////////////////////
   // JSX

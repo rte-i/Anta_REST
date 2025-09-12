@@ -143,7 +143,7 @@ export const HYDRO_ROUTES: HydroRoute[] = [
   {
     path: "avgDailyReservoirLevels",
     type: HydroMatrix.AvgDailyReservoirLevels,
-  }
+  },
 ];
 
 export const MATRICES: Matrices = {

@@ -77,9 +77,9 @@ enum RenewableGenerationModeling {
   Aggregated = "aggregated",
   Clusters = "clusters",
 }
-enum HydroRuleCurves{
+enum HydroRuleCurves {
   single = "single",
-  scenarized = "scenarized"
+  scenarized = "scenarized",
 }
 
 ////////////////////////////////////////////////////////////////
