@@ -22,7 +22,6 @@ import type { SplitViewProps } from "../../../../../../common/SplitView";
 import { getAllocationMatrix } from "./Allocation/utils";
 import { getCorrelationMatrix } from "./Correlation/utils";
 import InflowStructure from "./InflowStructure";
-import Hydro from ".";
 
 ////////////////////////////////////////////////////////////////
 // Enums
