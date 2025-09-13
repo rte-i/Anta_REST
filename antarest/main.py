@@ -26,6 +26,7 @@ from fastapi.exceptions import RequestValidationError
 from ratelimit import RateLimitMiddleware  # type: ignore
 from ratelimit.backends.redis import RedisBackend  # type: ignore
 from ratelimit.backends.simple import MemoryBackend  # type: ignore
+from redis.asyncio import Redis
 from starlette.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
@@ -266,7 +267,7 @@ def fastapi_app(
         backend=(
             MemoryBackend()
             if config.redis is None
-            else RedisBackend(config.redis.host, config.redis.port, 1, config.redis.password)
+            else RedisBackend(Redis(host=config.redis.host, port=config.redis.port, db=1, password=config.redis.password))
         ),
         config=RATE_LIMIT_CONFIG,
     )
