@@ -55,7 +55,6 @@ class InputHydroSeriesArea(FolderNode):
                 default_empty=default_scenario_hourly,
             )
 
-
         if study_version >= STUDY_VERSION_9_2:
             hydro_series_matrices["maxHourlyGenPower"] = InputSeriesMatrix(
                 self.matrix_mapper,

@@ -201,16 +201,14 @@ function Fields() {
             name="hydroPmax"
             control={control}
           />
-        </Fieldset>
-      )}
-      {studyVersion >= 930 && (
-        <Fieldset legend={t("study.configuration.advancedParameters.compatibility")}>
-          <SelectFE
-            label={t("study.configuration.advancedParameters.compatibility.hydro-rule-curves")}
-            options={HydroRuleCurvesOptions}
-            name="hydroRuleCurves"
-            control={control}
-          />
+          {studyVersion >= 930 && (
+            <SelectFE
+              label={t("study.configuration.advancedParameters.compatibility.hydro-rule-curves")}
+              options={HydroRuleCurvesOptions}
+              name="hydroRuleCurves"
+              control={control}
+            />
+          )}
         </Fieldset>
       )}
     </Box>

@@ -25,16 +25,11 @@ function Hydro() {
   const areaId = useAppSelector(getCurrentAreaId);
   const studyVersion = Number(study.version);
   const [hydroPmax, setHydroPmax] = useState<string>("");
-
-  useEffect(() => {
-    getAdvancedParamsFormFields(study.id).then((data) => {
-      setHydroPmax(data.hydroPmax || "");
-    });
-  }, [study.id]);
   const [hydroRuleCurves, setHydroRuleCurves] = useState<string>("");
 
   useEffect(() => {
     getAdvancedParamsFormFields(study.id).then((data) => {
+      setHydroPmax(data.hydroPmax || "");
       setHydroRuleCurves(data.hydroRuleCurves || "");
     });
   }, [study.id]);
@@ -71,7 +66,7 @@ function Hydro() {
           ]
         : []),
     ].filter(Boolean);
-  }, [areaId, study?.id, studyVersion]);
+  }, [areaId, study?.id, studyVersion, hydroRuleCurves, hydroPmax]);
 
   ////////////////////////////////////////////////////////////////
   // JSX
