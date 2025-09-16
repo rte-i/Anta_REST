@@ -564,7 +564,7 @@ class RawStudyService(AbstractStorageService):
             # The section is optional and AntaresWeb supports the default Simulator value
             if "compatibility" in ini_content and "hydro-rule-curves" in ini_content["compatibility"]:
                 hydro_rule_curves_value = ini_content["compatibility"]["hydro-rule-curves"]
-                if hydro_rule_curves_value != "single":
+                if hydro_rule_curves_value != "single" and hydro_rule_curves_value != "scenarized":
                     raise NotImplementedError(
                         f"AntaresWeb doesn't support the value {hydro_rule_curves_value} for the flag 'hydro-rule-curves'"
                     )
