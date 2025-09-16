@@ -36,6 +36,7 @@ from antarest.study.business.model.config.advanced_parameters_model import (
 class CompatibilitySection(AntaresBaseModel):
     model_config = ConfigDict(extra="ignore", populate_by_name=True, alias_generator=to_kebab_case)
     hydro_rule_curves: str | None = None
+    hydro_pmax: str | None = None
 
 
 class AdvancedParametersSection(AntaresBaseModel):
@@ -71,6 +72,7 @@ class OtherPreferencesSection(AntaresBaseModel):
     unit_commitment_mode: UnitCommitmentMode | None = None
     number_of_cores_mode: SimulationCore | None = None
     day_ahead_reserve_management: ReserveManagement | None = None
+    hydro_pmax: str | None = None
     renewable_generation_modelling: RenewableGenerationModeling | None = None
     accurate_shave_peaks_include_short_term_storage: bool | None = None
     hydro_rule_curves: str | None = None

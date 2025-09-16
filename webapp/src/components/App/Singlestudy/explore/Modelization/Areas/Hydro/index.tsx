@@ -12,7 +12,7 @@
  * This file is part of the Antares project.
  */
 
-import { useMemo, useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useOutletContext } from "react-router";
 import useAppSelector from "../../../../../../../redux/hooks/useAppSelector";
 import { getCurrentAreaId } from "../../../../../../../redux/selectors";
@@ -24,6 +24,13 @@ function Hydro() {
   const { study } = useOutletContext<{ study: StudyMetadata }>();
   const areaId = useAppSelector(getCurrentAreaId);
   const studyVersion = Number(study.version);
+  const [hydroPmax, setHydroPmax] = useState<string>("");
+
+  useEffect(() => {
+    getAdvancedParamsFormFields(study.id).then((data) => {
+      setHydroPmax(data.hydroPmax || "");
+    });
+  }, [study.id]);
   const [hydroRuleCurves, setHydroRuleCurves] = useState<string>("");
 
   useEffect(() => {
@@ -34,7 +41,6 @@ function Hydro() {
 
   const tabList = useMemo(() => {
     const basePath = `/studies/${study?.id}/explore/modelization/area/${encodeURI(areaId)}/hydro`;
-
     return [
       { label: "Management options", path: `${basePath}/management` },
       { label: "Inflow structure", path: `${basePath}/inflow-structure` },
@@ -49,6 +55,14 @@ function Hydro() {
       { label: "Hydro Storage", path: `${basePath}/hydrostorage` },
       { label: "Run of river", path: `${basePath}/ror` },
       studyVersion >= 860 && { label: "Min Gen", path: `${basePath}/mingen` },
+      ...(studyVersion >= 920 && hydroPmax === "hourly"
+        ? [
+            { label: "Max Pump Power", path: `${basePath}/maxHourlyPumpPower` },
+            { label: "Max Gen Power", path: `${basePath}/maxHourlyGenPower` },
+            { label: "Max Pump Energy", path: `${basePath}/maxDailyPumpEnergy` },
+            { label: "Max Gen Energy", path: `${basePath}/maxDailyGenEnergy` },
+          ]
+        : []),
       ...(studyVersion >= 930 && hydroRuleCurves === "scenarized"
         ? [
             { label: "Max Reservoir Levels", path: `${basePath}/maxDailyReservoirLevels` },
@@ -57,7 +71,7 @@ function Hydro() {
           ]
         : []),
     ].filter(Boolean);
-  }, [areaId, study?.id, studyVersion, hydroRuleCurves]);
+  }, [areaId, study?.id, studyVersion]);
 
   ////////////////////////////////////////////////////////////////
   // JSX

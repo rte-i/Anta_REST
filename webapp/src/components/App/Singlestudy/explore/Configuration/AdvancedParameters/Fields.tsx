@@ -34,6 +34,7 @@ import {
   UnitCommitmentMode,
   SheddingPolicy,
   HydroRuleCurvesOptions,
+  HYDRO_PMAX_OPTIONS,
   type AdvancedParamsFormFields,
 } from "./utils";
 import SwitchFE from "@/components/common/fieldEditors/SwitchFE";
@@ -192,6 +193,16 @@ function Fields() {
           />
         )}
       </Fieldset>
+      {studyVersion >= 920 && (
+        <Fieldset legend={t("study.configuration.advancedParameters.compatibility")}>
+          <SelectFE
+            label={t("study.configuration.advancedParameters.compatibility.hydro-pmax")}
+            options={HYDRO_PMAX_OPTIONS}
+            name="hydroPmax"
+            control={control}
+          />
+        </Fieldset>
+      )}
       {studyVersion >= 930 && (
         <Fieldset legend={t("study.configuration.advancedParameters.compatibility")}>
           <SelectFE

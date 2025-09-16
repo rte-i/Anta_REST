@@ -77,6 +77,11 @@ enum RenewableGenerationModeling {
   Aggregated = "aggregated",
   Clusters = "clusters",
 }
+
+enum HydroPMax {
+  daily = "daily",
+  hourly = "hourly",
+}
 enum HydroRuleCurves {
   single = "single",
   scenarized = "scenarized",
@@ -96,6 +101,7 @@ export const RESERVE_MANAGEMENT_OPTIONS = Object.values(ReserveManagement);
 export const UNIT_COMMITMENT_MODE_OPTIONS = Object.values(UnitCommitmentMode);
 export const SIMULATION_CORES_OPTIONS = Object.values(SimulationCore);
 export const RENEWABLE_GENERATION_OPTIONS = Object.values(RenewableGenerationModeling);
+export const HYDRO_PMAX_OPTIONS = Object.values(HydroPMax);
 export const HydroRuleCurvesOptions = Object.values(HydroRuleCurves);
 
 ////////////////////////////////////////////////////////////////
@@ -124,6 +130,8 @@ export interface AdvancedParamsFormFields {
   seedUnsuppliedEnergyCosts: number;
   sheddingPolicy: string;
   unitCommitmentMode: string;
+  hydroPmax: string;
+
   // Since v9.3
   accurateShavePeaksIncludeShortTermStorage?: boolean;
   hydroRuleCurves: string;
