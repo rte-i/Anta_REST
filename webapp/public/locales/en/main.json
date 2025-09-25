@@ -515,6 +515,8 @@
   "study.configuration.advancedParameters.simulationCores": "Simulation cores",
   "study.configuration.advancedParameters.renewableGenerationModeling": "Renewable generation modeling",
   "study.configuration.advancedParameters.accurateShavePeaksIncludeShortTermStorage": "Accurate shave peaks include short term storage",
+  "study.configuration.advancedParameters.compatibility": "Compatibility",
+  "study.configuration.advancedParameters.compatibility.hydro-rule-curves": "Hydro Rule Curves",
   "study.configuration.economicOpt": "Economic Opt.",
   "study.configuration.geographicTrimmingAreas": "Geographic Trimming (Areas)",
   "study.configuration.geographicTrimmingLinks": "Geographic Trimming (Links)",

@@ -33,6 +33,7 @@ import {
   UNIT_COMMITMENT_MODE_OPTIONS,
   UnitCommitmentMode,
   SheddingPolicy,
+  HydroRuleCurvesOptions,
   type AdvancedParamsFormFields,
 } from "./utils";
 import SwitchFE from "@/components/common/fieldEditors/SwitchFE";
@@ -191,6 +192,16 @@ function Fields() {
           />
         )}
       </Fieldset>
+      {studyVersion >= 930 && (
+        <Fieldset legend={t("study.configuration.advancedParameters.compatibility")}>
+          <SelectFE
+            label={t("study.configuration.advancedParameters.compatibility.hydro-rule-curves")}
+            options={HydroRuleCurvesOptions}
+            name="hydroRuleCurves"
+            control={control}
+          />
+        </Fieldset>
+      )}
     </Box>
   );
 }
