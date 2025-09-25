@@ -73,7 +73,6 @@ class OtherPreferencesSection(AntaresBaseModel):
     day_ahead_reserve_management: ReserveManagement | None = None
     renewable_generation_modelling: RenewableGenerationModeling | None = None
     accurate_shave_peaks_include_short_term_storage: bool | None = None
-    hydro_rule_curves: str | None = None
 
 
 class AdvancedParametersFileData(AntaresBaseModel):
